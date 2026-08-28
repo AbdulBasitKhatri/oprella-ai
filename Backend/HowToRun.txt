@@ -1,0 +1,10 @@
+1) Install dependencies:
+pip install -r requirements.txt
+
+2) Run dev server using fastapi-cli:
+fastapi dev app/main.py
+
+3) Run production server using fastapi-cli:
+fastapi run app/main.py
+
+4) Open [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) to test interactive Swagger API docs.
