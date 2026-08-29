@@ -1,18 +1,58 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { LogIn, KeyRound, Mail, ArrowRight, Sparkles, ShieldCheck } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { LogIn, KeyRound, Mail, ArrowRight, Sparkles, ShieldCheck, AlertCircle, Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
+  const navigate = useNavigate();
+  
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     rememberMe: false,
   });
 
-  const handleSubmit = (e) => {
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Auth handling logic here
-    console.log('Logging in with:', formData);
+    setErrorMessage('');
+    setLoading(true);
+
+    try {
+      const response = await fetch('http://localhost:8000/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Authentication failed. Please check your credentials.');
+      }
+
+      // Store JWT token based on Remember Me preference
+      if (formData.rememberMe) {
+        localStorage.setItem('access_token', data.access_token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+      } else {
+        sessionStorage.setItem('access_token', data.access_token);
+        sessionStorage.setItem('user', JSON.stringify(data.user));
+      }
+
+      // Redirect to home page or dashboard
+      navigate('/');
+    } catch (err) {
+      setErrorMessage(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -25,7 +65,7 @@ export default function LoginPage() {
         <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-zinc-400 via-zinc-200 dark:via-zinc-500 to-zinc-400 opacity-80" />
 
         {/* Card Header */}
-        <div className="mb-8">
+        <div className="mb-6">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-6 h-6 bg-zinc-950 text-white dark:bg-zinc-100 dark:text-zinc-950 flex items-center justify-center font-black text-xs rounded-none">
               <Sparkles size={13} />
@@ -42,6 +82,14 @@ export default function LoginPage() {
           </p>
         </div>
 
+        {/* Error Alert Box */}
+        {errorMessage && (
+          <div className="mb-6 p-3 bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 flex items-center gap-2 text-xs font-mono rounded-none">
+            <AlertCircle size={16} className="shrink-0" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
+
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-5">
           
@@ -55,10 +103,11 @@ export default function LoginPage() {
               <input
                 type="email"
                 required
+                disabled={loading}
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder="developer@oprella.ai"
-                className="w-full pl-10 pr-4 py-2.5 bg-zinc-100 dark:bg-zinc-950/80 border border-zinc-300 dark:border-zinc-800 text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors rounded-none"
+                className="w-full pl-10 pr-4 py-2.5 bg-zinc-100 dark:bg-zinc-950/80 border border-zinc-300 dark:border-zinc-800 text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors rounded-none disabled:opacity-50"
               />
             </div>
           </div>
@@ -78,10 +127,11 @@ export default function LoginPage() {
               <input
                 type="password"
                 required
+                disabled={loading}
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 placeholder="••••••••••••"
-                className="w-full pl-10 pr-4 py-2.5 bg-zinc-100 dark:bg-zinc-950/80 border border-zinc-300 dark:border-zinc-800 text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors rounded-none"
+                className="w-full pl-10 pr-4 py-2.5 bg-zinc-100 dark:bg-zinc-950/80 border border-zinc-300 dark:border-zinc-800 text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors rounded-none disabled:opacity-50"
               />
             </div>
           </div>
@@ -91,9 +141,10 @@ export default function LoginPage() {
             <label className="flex items-center gap-2 cursor-pointer group">
               <input
                 type="checkbox"
+                disabled={loading}
                 checked={formData.rememberMe}
                 onChange={(e) => setFormData({ ...formData, rememberMe: e.target.checked })}
-                className="w-4 h-4 accent-zinc-900 dark:accent-zinc-100 rounded-none cursor-pointer"
+                className="w-4 h-4 accent-zinc-900 dark:accent-zinc-100 rounded-none cursor-pointer disabled:opacity-50"
               />
               <span className="text-xs font-mono text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-200 transition-colors">
                 Remember session
@@ -108,9 +159,18 @@ export default function LoginPage() {
           {/* Submit Button */}
           <button
             type="submit"
-            className="w-full py-3 bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-950 font-extrabold text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-zinc-800 dark:hover:bg-white transition-all duration-200 rounded-none shadow-md mt-6"
+            disabled={loading}
+            className="w-full py-3 bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-950 font-extrabold text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-zinc-800 dark:hover:bg-white transition-all duration-200 rounded-none shadow-md mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <LogIn size={15} /> Authenticate <ArrowRight size={14} />
+            {loading ? (
+              <>
+                <Loader2 size={15} className="animate-spin" /> Authenticating...
+              </>
+            ) : (
+              <>
+                <LogIn size={15} /> Authenticate <ArrowRight size={14} />
+              </>
+            )}
           </button>
         </form>
 

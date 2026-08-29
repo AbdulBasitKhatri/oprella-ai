@@ -3,8 +3,8 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import Navbar from './components/Navbar';
 import LandingPage from './pages/LandingPage';
-import StudentDashboard from './pages/StudentDashboard';
-import ApplicationTracker from './pages/ApplicationTracker';
+// import StudentDashboard from './pages/StudentDashboard';
+// import ApplicationTracker from './pages/ApplicationTracker';
 import SignupPage from './pages/SignupPage';
 import LoginPage from './pages/LoginPage';
 
@@ -22,8 +22,8 @@ export default function App() {
               <Route path="/" element={<LandingPage />} />
               <Route path="/signup" element={<SignupPage />} />
               <Route path="/login" element={<LoginPage />} />
-              <Route path="/dashboard" element={<StudentDashboard />} />
-              <Route path="/tracker" element={<ApplicationTracker />} />
+              {/* <Route path="/dashboard" element={<StudentDashboard />} />
+              <Route path="/tracker" element={<ApplicationTracker />} /> */}
             </Routes>
           </main>
         </div>

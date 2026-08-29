@@ -12,13 +12,31 @@ export default function SignupPage() {
     acceptTerms: false,
   });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) {
       alert('Passwords do not match');
       return;
     }
-    console.log('Registering user:', formData);
+
+    try {
+      const response = await fetch('http://127.0.0.1:8000/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.detail || 'Signup failed');
+      }
+
+      // Save token to localStorage and navigate to dashboard
+      localStorage.setItem('token', data.access_token);
+      alert('Account created successfully!');
+    } catch (err) {
+      alert(err.message);
+    }
   };
 
   return (

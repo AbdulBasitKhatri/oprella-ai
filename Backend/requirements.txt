@@ -4,3 +4,6 @@ motor
 pydantic
 pydantic-settings
 python-dotenv
+pymongo[srv]
+passlib[bcrypt]
+pyjwt
