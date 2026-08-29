@@ -7,6 +7,7 @@ import StudentDashboard from './pages/StudentDashboard';
 import ApplicationTracker from './pages/ApplicationTracker';
 import SignupPage from './pages/SignupPage';
 import LoginPage from './pages/LoginPage';
+import StudentProfile from './pages/StudentProfile';
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
               <Route path="/" element={<LandingPage />} />
               <Route path="/signup" element={<SignupPage />} />
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/student-profile" element={<StudentProfile />} />
               <Route path="/dashboard" element={<StudentDashboard />} />
               <Route path="/tracker" element={<ApplicationTracker />} />
             </Routes>
