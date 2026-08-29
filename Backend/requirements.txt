@@ -7,3 +7,4 @@ python-dotenv
 pymongo[srv]
 passlib[bcrypt]
 pyjwt
+bcrypt==4.0.1
