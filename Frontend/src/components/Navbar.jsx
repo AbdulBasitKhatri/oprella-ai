@@ -47,6 +47,7 @@ export default function Navbar() {
           {[
             { path: '/dashboard', label: 'Feed', icon: LayoutDashboard },
             { path: '/tracker', label: 'Tracker', icon: BookmarkCheck },
+            { path: '/student-profile', label: 'Profile', icon: User },
             { path: '/admin', label: 'Admin Panel', icon: Shield },
           ].map(({ path, label, icon: Icon }) => {
             const active = isActive(path);
