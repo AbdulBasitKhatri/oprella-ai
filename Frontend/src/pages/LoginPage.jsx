@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { LogIn, KeyRound, Mail, ArrowRight, Sparkles, ShieldCheck, AlertCircle, Loader2 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  
+  const { login, isAuthenticated, isOnboarded, loading: authLoading } = useAuth();
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -13,6 +15,14 @@ export default function LoginPage() {
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  useEffect(() => {
+    if (authLoading) return;
+
+    if (isAuthenticated) {
+      navigate(isOnboarded ? '/' : '/onboarding', { replace: true });
+    }
+  }, [authLoading, isAuthenticated, isOnboarded, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -37,17 +47,15 @@ export default function LoginPage() {
         throw new Error(data.detail || 'Authentication failed. Please check your credentials.');
       }
 
-      // Store JWT token based on Remember Me preference
-      if (formData.rememberMe) {
-        localStorage.setItem('access_token', data.access_token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-      } else {
-        sessionStorage.setItem('access_token', data.access_token);
-        sessionStorage.setItem('user', JSON.stringify(data.user));
-      }
+      // Update global AuthContext state (syncs storage + triggers immediate Navbar re-render)
+      login(data, formData.rememberMe);
 
-      // Redirect to home page or dashboard
-      navigate('/');
+      // Route dynamically based on onboarding status
+      if (!data.user?.is_onboarded) {
+        navigate('/onboarding', { replace: true });
+      } else {
+        navigate('/', { replace: true });
+      }
     } catch (err) {
       setErrorMessage(err.message);
     } finally {

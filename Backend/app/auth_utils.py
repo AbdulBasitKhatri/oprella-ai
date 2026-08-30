@@ -1,7 +1,41 @@
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 import jwt
 from passlib.context import CryptContext
+from pydantic import BaseModel, EmailStr, ConfigDict
 from app.config import settings
+
+# --------------------------------------------------------------------------
+# Pydantic Schemas
+# --------------------------------------------------------------------------
+
+class UserSignUp(BaseModel):
+    email: EmailStr
+    password: str
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+class UserResponse(BaseModel):
+    id: int
+    email: EmailStr
+    is_onboarded: bool = False
+
+    model_config = ConfigDict(from_attributes=True)
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserResponse
+
+class TokenData(BaseModel):
+    sub: Optional[str] = None
+
+
+# --------------------------------------------------------------------------
+# Auth Utilities
+# --------------------------------------------------------------------------
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 

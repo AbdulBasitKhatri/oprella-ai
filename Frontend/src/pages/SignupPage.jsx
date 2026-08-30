@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { UserPlus, User, Mail, KeyRound, Code, ArrowRight, Sparkles, ShieldCheck } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { UserPlus, User, Mail, KeyRound, Code, ArrowRight, Sparkles, ShieldCheck, AlertCircle, Loader2 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export default function SignupPage() {
+  const navigate = useNavigate();
+  const { login } = useAuth();
+
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -12,30 +16,51 @@ export default function SignupPage() {
     acceptTerms: false,
   });
 
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMessage('');
+
     if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match');
+      setErrorMessage('Passwords do not match');
       return;
     }
 
+    setLoading(true);
+
     try {
-      const response = await fetch('http://127.0.0.1:8000/auth/signup', {
+      const response = await fetch('http://localhost:8000/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          full_name: formData.fullName,
+          email: formData.email,
+          role: formData.role,
+          password: formData.password,
+        }),
       });
 
       const data = await response.json();
+
       if (!response.ok) {
-        throw new Error(data.detail || 'Signup failed');
+        throw new Error(data.detail || 'Signup failed. Please try again.');
       }
 
-      // Save token to localStorage and navigate to dashboard
-      localStorage.setItem('token', data.access_token);
-      alert('Account created successfully!');
+      // Update global AuthContext state (syncs storage + triggers immediate Navbar re-render)
+      login(data, true);
+
+      // Navigate to onboarding with state preserved
+      navigate('/onboarding', { 
+        state: { fromSignupSuccess: true },
+        replace: true 
+      });
+
     } catch (err) {
-      alert(err.message);
+      setErrorMessage(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -66,6 +91,14 @@ export default function SignupPage() {
           </p>
         </div>
 
+        {/* Error Alert Box */}
+        {errorMessage && (
+          <div className="mb-6 p-3 bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 flex items-center gap-2 text-xs font-mono rounded-none">
+            <AlertCircle size={16} className="shrink-0" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
+
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-5">
           
@@ -80,10 +113,11 @@ export default function SignupPage() {
                 <input
                   type="text"
                   required
+                  disabled={loading}
                   value={formData.fullName}
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                   placeholder="Abdul Basit"
-                  className="w-full pl-10 pr-4 py-2.5 bg-zinc-100 dark:bg-zinc-950/80 border border-zinc-300 dark:border-zinc-800 text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors rounded-none"
+                  className="w-full pl-10 pr-4 py-2.5 bg-zinc-100 dark:bg-zinc-950/80 border border-zinc-300 dark:border-zinc-800 text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors rounded-none disabled:opacity-50"
                 />
               </div>
             </div>
@@ -96,9 +130,10 @@ export default function SignupPage() {
               <div className="relative">
                 <Code className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" size={16} />
                 <select
+                  disabled={loading}
                   value={formData.role}
                   onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  className="w-full pl-10 pr-4 py-2.5 bg-zinc-100 dark:bg-zinc-950/80 border border-zinc-300 dark:border-zinc-800 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors rounded-none appearance-none"
+                  className="w-full pl-10 pr-4 py-2.5 bg-zinc-100 dark:bg-zinc-950/80 border border-zinc-300 dark:border-zinc-800 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors rounded-none appearance-none disabled:opacity-50"
                 >
                   <option value="Student / Researcher">Student / Researcher</option>
                   <option value="Recruiter / Organization">Recruiter / Organization</option>
@@ -117,10 +152,11 @@ export default function SignupPage() {
               <input
                 type="email"
                 required
+                disabled={loading}
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder="developer@oprella.ai"
-                className="w-full pl-10 pr-4 py-2.5 bg-zinc-100 dark:bg-zinc-950/80 border border-zinc-300 dark:border-zinc-800 text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors rounded-none"
+                className="w-full pl-10 pr-4 py-2.5 bg-zinc-100 dark:bg-zinc-950/80 border border-zinc-300 dark:border-zinc-800 text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors rounded-none disabled:opacity-50"
               />
             </div>
           </div>
@@ -136,10 +172,11 @@ export default function SignupPage() {
                 <input
                   type="password"
                   required
+                  disabled={loading}
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   placeholder="••••••••••••"
-                  className="w-full pl-10 pr-4 py-2.5 bg-zinc-100 dark:bg-zinc-950/80 border border-zinc-300 dark:border-zinc-800 text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors rounded-none"
+                  className="w-full pl-10 pr-4 py-2.5 bg-zinc-100 dark:bg-zinc-950/80 border border-zinc-300 dark:border-zinc-800 text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors rounded-none disabled:opacity-50"
                 />
               </div>
             </div>
@@ -154,10 +191,11 @@ export default function SignupPage() {
                 <input
                   type="password"
                   required
+                  disabled={loading}
                   value={formData.confirmPassword}
                   onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                   placeholder="••••••••••••"
-                  className="w-full pl-10 pr-4 py-2.5 bg-zinc-100 dark:bg-zinc-950/80 border border-zinc-300 dark:border-zinc-800 text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors rounded-none"
+                  className="w-full pl-10 pr-4 py-2.5 bg-zinc-100 dark:bg-zinc-950/80 border border-zinc-300 dark:border-zinc-800 text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 transition-colors rounded-none disabled:opacity-50"
                 />
               </div>
             </div>
@@ -169,9 +207,10 @@ export default function SignupPage() {
               <input
                 type="checkbox"
                 required
+                disabled={loading}
                 checked={formData.acceptTerms}
                 onChange={(e) => setFormData({ ...formData, acceptTerms: e.target.checked })}
-                className="w-4 h-4 accent-zinc-900 dark:accent-zinc-100 rounded-none cursor-pointer"
+                className="w-4 h-4 accent-zinc-900 dark:accent-zinc-100 rounded-none cursor-pointer disabled:opacity-50"
               />
               <span className="text-xs font-mono text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-200 transition-colors">
                 I accept the <a href="#terms" className="underline">Terms of Service</a>
@@ -186,9 +225,18 @@ export default function SignupPage() {
           {/* Submit Button */}
           <button
             type="submit"
-            className="w-full py-3 bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-950 font-extrabold text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-zinc-800 dark:hover:bg-white transition-all duration-200 rounded-none shadow-md mt-6"
+            disabled={loading}
+            className="w-full py-3 bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-950 font-extrabold text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-zinc-800 dark:hover:bg-white transition-all duration-200 rounded-none shadow-md mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <UserPlus size={15} /> Create Account <ArrowRight size={14} />
+            {loading ? (
+              <>
+                <Loader2 size={15} className="animate-spin" /> Creating Account...
+              </>
+            ) : (
+              <>
+                <UserPlus size={15} /> Create Account <ArrowRight size={14} />
+              </>
+            )}
           </button>
         </form>
 

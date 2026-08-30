@@ -1,6 +1,7 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import { 
   LayoutDashboard, 
   BookmarkCheck, 
@@ -10,14 +11,22 @@ import {
   UserPlus, 
   Sparkles,
   Sun,
-  Moon
+  Moon,
+  LogOut
 } from 'lucide-react';
 
 export default function Navbar() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
+  const { user, isAuthenticated, logout } = useAuth();
 
   const isActive = (path) => location.pathname === path;
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 w-full bg-white/80 dark:bg-zinc-950/80 border-b border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 z-50 rounded-none shadow-[0_4px_30px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_30px_rgba(255,255,255,0.03)] backdrop-blur-xl transition-colors duration-200">
@@ -42,33 +51,35 @@ export default function Navbar() {
           </div>
         </Link>
 
-        {/* Navigation Tabs */}
-        <div className="hidden md:flex items-center gap-2">
-          {[
-            { path: '/dashboard', label: 'Feed', icon: LayoutDashboard },
-            { path: '/tracker', label: 'Tracker', icon: BookmarkCheck },
-            { path: '/admin', label: 'Admin Panel', icon: Shield },
-          ].map(({ path, label, icon: Icon }) => {
-            const active = isActive(path);
-            return (
-              <Link
-                key={path}
-                to={path}
-                className={`relative px-4 py-2 text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition-all duration-200 rounded-none border ${
-                  active
-                    ? 'bg-zinc-100 border-zinc-300 text-zinc-900 dark:bg-zinc-900 dark:border-zinc-600 dark:text-zinc-100'
-                    : 'border-transparent text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:border-zinc-300 dark:hover:border-zinc-800'
-                }`}
-              >
-                {active && (
-                  <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-zinc-900 dark:bg-zinc-100" />
-                )}
-                <Icon size={14} className={active ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-400 dark:text-zinc-500'} />
-                {label}
-              </Link>
-            );
-          })}
-        </div>
+        {/* Navigation Tabs (Only visible when authenticated) */}
+        {isAuthenticated && (
+          <div className="hidden md:flex items-center gap-2">
+            {[
+              { path: '/dashboard', label: 'Feed', icon: LayoutDashboard },
+              { path: '/tracker', label: 'Tracker', icon: BookmarkCheck },
+              { path: '/admin', label: 'Admin Panel', icon: Shield },
+            ].map(({ path, label, icon: Icon }) => {
+              const active = isActive(path);
+              return (
+                <Link
+                  key={path}
+                  to={path}
+                  className={`relative px-4 py-2 text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition-all duration-200 rounded-none border ${
+                    active
+                      ? 'bg-zinc-100 border-zinc-300 text-zinc-900 dark:bg-zinc-900 dark:border-zinc-600 dark:text-zinc-100'
+                      : 'border-transparent text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:border-zinc-300 dark:hover:border-zinc-800'
+                  }`}
+                >
+                  {active && (
+                    <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-zinc-900 dark:bg-zinc-100" />
+                  )}
+                  <Icon size={14} className={active ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-400 dark:text-zinc-500'} />
+                  {label}
+                </Link>
+              );
+            })}
+          </div>
+        )}
 
         {/* Right Section */}
         <div className="flex items-center gap-3">
@@ -92,31 +103,47 @@ export default function Navbar() {
             )}
           </button>
 
-          <Link
-            to="/login"
-            className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider flex items-center gap-2 transition-all duration-200 rounded-none border ${
-              isActive('/login')
-                ? 'bg-zinc-900 text-white dark:bg-zinc-200 dark:text-zinc-950 font-bold'
-                : 'border-zinc-300 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 bg-zinc-100/60 dark:bg-zinc-900/60 hover:border-zinc-400 dark:hover:border-zinc-600'
-            }`}
-          >
-            <LogIn size={14} /> Log In
-          </Link>
+          {/* Conditional Auth Actions */}
+          {isAuthenticated ? (
+            <div className="flex items-center gap-3">
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-zinc-100 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 text-xs font-mono text-zinc-700 dark:text-zinc-300">
+                <User size={14} className="text-zinc-500" />
+                <span>{user?.fullName || user?.full_name || user?.email || 'User'}</span>
+              </div>
 
-          <Link
-            to="/signup"
-            className={`px-4 py-2 text-xs font-extrabold uppercase tracking-wider flex items-center gap-2 transition-all duration-200 rounded-none shadow-sm ${
-              isActive('/signup')
-                ? 'bg-zinc-950 text-white dark:bg-white dark:text-zinc-950'
-                : 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-950 hover:bg-zinc-800 dark:hover:bg-white'
-            }`}
-          >
-            <UserPlus size={14} /> Sign Up
-          </Link>
+              <button
+                onClick={handleLogout}
+                className="h-9 px-4 bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-950 text-xs font-semibold uppercase tracking-wider flex items-center gap-2 hover:bg-zinc-800 dark:hover:bg-white transition-all duration-200 rounded-none shadow-sm"
+              >
+                <LogOut size={14} /> Logout
+              </button>
+            </div>
+          ) : (
+            <>
+              <Link
+                to="/login"
+                className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider flex items-center gap-2 transition-all duration-200 rounded-none border ${
+                  isActive('/login')
+                    ? 'bg-zinc-900 text-white dark:bg-zinc-200 dark:text-zinc-950 font-bold'
+                    : 'border-zinc-300 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 bg-zinc-100/60 dark:bg-zinc-900/60 hover:border-zinc-400 dark:hover:border-zinc-600'
+                }`}
+              >
+                <LogIn size={14} /> Log In
+              </Link>
 
-          <div className="hidden sm:flex h-9 w-9 bg-zinc-100 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 hover:border-zinc-500 items-center justify-center text-zinc-700 dark:text-zinc-300 rounded-none transition cursor-pointer">
-            <User size={16} />
-          </div>
+              <Link
+                to="/signup"
+                className={`px-4 py-2 text-xs font-extrabold uppercase tracking-wider flex items-center gap-2 transition-all duration-200 rounded-none shadow-sm ${
+                  isActive('/signup')
+                    ? 'bg-zinc-950 text-white dark:bg-white dark:text-zinc-950'
+                    : 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-950 hover:bg-zinc-800 dark:hover:bg-white'
+                }`}
+              >
+                <UserPlus size={14} /> Sign Up
+              </Link>
+            </>
+          )}
+
         </div>
 
       </div>

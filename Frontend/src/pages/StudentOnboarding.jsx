@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext'; // Adjust path based on your folder structure
 import {
   BookOpen,
   GraduationCap,
@@ -9,9 +11,16 @@ import {
   Sparkles,
   CheckCircle2,
   PencilLine,
+  UploadCloud,
+  FileText,
+  X,
+  AlertCircle
 } from 'lucide-react';
 
 export default function StudentOnboarding() {
+  const navigate = useNavigate();
+  const { token, user, updateUser } = useAuth(); // Retrieve state & updater from AuthContext
+
   const [formData, setFormData] = useState({
     education: '',
     degreeField: '',
@@ -23,14 +32,95 @@ export default function StudentOnboarding() {
     careerGoals: '',
   });
 
+  const [cvFile, setCvFile] = useState(null);
+  const [fileError, setFileError] = useState('');
+  const [submitError, setSubmitError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    setFileError('');
+
+    if (!file) return;
+
+    // Allowed extensions for PDF/DOC/DOCX
+    const allowedExtensions = ['pdf', 'doc', 'docx'];
+    const fileExtension = file.name.split('.').pop().toLowerCase();
+
+    if (!allowedExtensions.includes(fileExtension)) {
+      setFileError('Invalid file format. Only PDF, DOC, and DOCX files are allowed.');
+      e.target.value = '';
+      return;
+    }
+
+    // 5MB Limit Check
+    if (file.size > 5 * 1024 * 1024) {
+      setFileError('File size exceeds 5MB threshold.');
+      e.target.value = '';
+      return;
+    }
+
+    setCvFile(file);
+  };
+
+  const removeFile = () => {
+    setCvFile(null);
+    setFileError('');
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Student onboarding profile:', formData);
+    setSubmitError('');
+    setIsSubmitting(true);
+
+    try {
+      const dataPayload = new FormData();
+      
+      // Append form fields individually for FastAPI Form parsing
+      Object.keys(formData).forEach((key) => {
+        dataPayload.append(key, formData[key]);
+      });
+
+      if (cvFile) {
+        dataPayload.append('cv', cvFile);
+      }
+
+      // Use active token from AuthContext or fallback to local storage
+      const activeToken = token || localStorage.getItem('token') || sessionStorage.getItem('token');
+
+      const response = await fetch('http://localhost:8000/auth/onboarding', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${activeToken}`,
+        },
+        body: dataPayload,
+      });
+
+      const resData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(resData.detail || 'Failed to complete onboarding');
+      }
+
+      // Update global context state so the router updates immediately without a hard refresh
+      const updatedUserData = { ...user, ...resData.user, is_onboarded: true };
+      
+      if (typeof updateUser === 'function') {
+        updateUser(updatedUserData);
+      }
+
+      // Smooth client-side navigation
+      navigate('/', { replace: true });
+    } catch (err) {
+      setSubmitError(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const fieldClasses =
@@ -54,9 +144,15 @@ export default function StudentOnboarding() {
             Tell us about you
           </h1>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 font-mono">
-            Complete your profile to unlock tailored opportunity matches.
+            Complete all profile fields to unlock tailored opportunity matches. Select "No Education" or "None" where applicable.
           </p>
         </div>
+
+        {submitError && (
+          <div className="mb-6 p-3 bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-xs font-mono flex items-center gap-2">
+            <AlertCircle size={15} /> {submitError}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -70,9 +166,11 @@ export default function StudentOnboarding() {
                   name="education"
                   value={formData.education}
                   onChange={handleChange}
+                  required
                   className={fieldClasses + ' appearance-none'}
                 >
                   <option value="">Select education level</option>
+                  <option value="No formal education">No formal education</option>
                   <option value="High School">High School</option>
                   <option value="Undergraduate">Undergraduate</option>
                   <option value="Graduate">Graduate</option>
@@ -93,7 +191,8 @@ export default function StudentOnboarding() {
                   name="degreeField"
                   value={formData.degreeField}
                   onChange={handleChange}
-                  placeholder="Computer Science"
+                  required
+                  placeholder="Computer Science (or type 'None')"
                   className={fieldClasses}
                 />
               </div>
@@ -103,7 +202,7 @@ export default function StudentOnboarding() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-1.5">
-                Semester
+                Semester / Phase
               </label>
               <div className="relative">
                 <CalendarRange className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" size={16} />
@@ -111,9 +210,11 @@ export default function StudentOnboarding() {
                   name="semester"
                   value={formData.semester}
                   onChange={handleChange}
+                  required
                   className={fieldClasses + ' appearance-none'}
                 >
-                  <option value="">Select semester</option>
+                  <option value="">Select semester or phase</option>
+                  <option value="Not Applicable">Not Applicable</option>
                   <option value="1st Semester">1st Semester</option>
                   <option value="2nd Semester">2nd Semester</option>
                   <option value="3rd Semester">3rd Semester</option>
@@ -122,7 +223,7 @@ export default function StudentOnboarding() {
                   <option value="6th Semester">6th Semester</option>
                   <option value="7th Semester">7th Semester</option>
                   <option value="8th Semester">8th Semester</option>
-                  <option value="Final Year">Final Year</option>
+                  <option value="Graduated">Graduated</option>
                 </select>
               </div>
             </div>
@@ -138,7 +239,8 @@ export default function StudentOnboarding() {
                   name="location"
                   value={formData.location}
                   onChange={handleChange}
-                  placeholder="Karachi, Pakistan"
+                  required
+                  placeholder="Karachi, Pakistan (or type 'Remote / Unspecified')"
                   className={fieldClasses}
                 />
               </div>
@@ -155,8 +257,9 @@ export default function StudentOnboarding() {
                 name="skills"
                 value={formData.skills}
                 onChange={handleChange}
-                rows="3"
-                placeholder="Python, UI/UX, Content Writing, Data Analysis"
+                required
+                rows="2"
+                placeholder="Python, UI/UX, Data Analysis (or type 'None / Beginner')"
                 className={fieldClasses + ' pl-10 resize-none'}
               />
             </div>
@@ -172,8 +275,9 @@ export default function StudentOnboarding() {
                 name="interests"
                 value={formData.interests}
                 onChange={handleChange}
-                rows="3"
-                placeholder="Product design, AI, startups, research, entrepreneurship"
+                required
+                rows="2"
+                placeholder="Product design, AI, Startups (or type 'None')"
                 className={fieldClasses + ' pl-10 resize-none'}
               />
             </div>
@@ -189,8 +293,9 @@ export default function StudentOnboarding() {
                 name="experience"
                 value={formData.experience}
                 onChange={handleChange}
-                rows="4"
-                placeholder="Describe internships, projects, part-time roles, or freelance work."
+                required
+                rows="3"
+                placeholder="Describe internships, projects, or type 'No prior experience'."
                 className={fieldClasses + ' pl-10 resize-none'}
               />
             </div>
@@ -206,18 +311,67 @@ export default function StudentOnboarding() {
                 name="careerGoals"
                 value={formData.careerGoals}
                 onChange={handleChange}
-                rows="4"
-                placeholder="What role or impact do you want to build toward in the next few years?"
+                required
+                rows="3"
+                placeholder="What role do you want to build toward? (or type 'Undecided')"
                 className={fieldClasses + ' pl-10 resize-none'}
               />
             </div>
           </div>
 
+          <div>
+            <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-1.5">
+              CV / Resume (PDF, DOC, DOCX up to 5MB)
+            </label>
+            {!cvFile ? (
+              <label className="flex flex-col items-center justify-center border-2 border-dashed border-zinc-300 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/50 p-4 cursor-pointer hover:border-zinc-500 transition-colors">
+                <UploadCloud className="text-zinc-400 mb-1" size={24} />
+                <span className="text-xs text-zinc-600 dark:text-zinc-400 font-mono">
+                  Click to upload or drag & drop CV
+                </span>
+                <span className="text-[10px] text-zinc-400 dark:text-zinc-600 font-mono mt-0.5">
+                  PDF, DOC, DOCX (Max 5MB)
+                </span>
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+              </label>
+            ) : (
+              <div className="flex items-center justify-between p-3 bg-zinc-100 dark:bg-zinc-950/80 border border-zinc-300 dark:border-zinc-800">
+                <div className="flex items-center gap-2">
+                  <FileText size={18} className="text-zinc-500" />
+                  <div>
+                    <p className="text-xs font-mono font-medium text-zinc-800 dark:text-zinc-200 truncate max-w-[250px]">
+                      {cvFile.name}
+                    </p>
+                    <p className="text-[10px] text-zinc-500 font-mono">
+                      {(cvFile.size / (1024 * 1024)).toFixed(2)} MB
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={removeFile}
+                  className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-500 transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            )}
+            {fileError && (
+              <p className="text-[11px] text-red-500 font-mono mt-1">{fileError}</p>
+            )}
+          </div>
+
           <button
             type="submit"
-            className="w-full py-3 bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-950 font-extrabold text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-zinc-800 dark:hover:bg-white transition-all duration-200 rounded-none shadow-md mt-6"
+            disabled={isSubmitting}
+            className="w-full py-3 bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-950 font-extrabold text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-zinc-800 dark:hover:bg-white transition-all duration-200 rounded-none shadow-md mt-6 disabled:opacity-50"
           >
-            <CheckCircle2 size={15} /> Save Profile
+            <CheckCircle2 size={15} /> {isSubmitting ? 'Saving Profile...' : 'Save Profile'}
           </button>
         </form>
       </div>
