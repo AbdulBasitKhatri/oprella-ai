@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { UserPlus, User, Mail, KeyRound, Code, ArrowRight, Sparkles, ShieldCheck, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { API_ROUTES, FRONTEND_ROUTES } from '../config/appConfig';
+import { API_ROUTES, FRONTEND_ROUTES, isRecruiterRole } from '../config/appConfig';
 
 export default function SignupPage() {
   const navigate = useNavigate();
@@ -53,8 +53,11 @@ export default function SignupPage() {
       // Update global AuthContext state (syncs storage + triggers immediate Navbar re-render)
       login(data, true);
 
-      // Navigate to onboarding with state preserved
-      navigate(FRONTEND_ROUTES.onboarding, {
+      const targetRoute = isRecruiterRole(data.user?.role)
+        ? FRONTEND_ROUTES.recruiterOnboarding
+        : FRONTEND_ROUTES.onboarding;
+
+      navigate(targetRoute, {
         state: { fromSignupSuccess: true },
         replace: true,
       });

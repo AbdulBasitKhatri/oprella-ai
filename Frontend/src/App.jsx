@@ -4,17 +4,18 @@ import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import { ProtectedRoute, PublicRoute } from './components/routes/AuthRoutes';
-import { FRONTEND_ROUTES } from './config/appConfig';
+import { FRONTEND_ROUTES, isRecruiterRole } from './config/appConfig';
 import LandingPage from './pages/LandingPage';
 import SignupPage from './pages/SignupPage';
 import LoginPage from './pages/LoginPage';
 import StudentOnboarding from './pages/StudentOnboarding';
+import RecruiterOnboarding from './pages/RecruiterOnboarding';
 import DashboardPage from './pages/DashboardPage';
 import TrackerPage from './pages/TrackerPage';
 import AdminPage from './pages/AdminPage';
 
-function OnboardingRoute({ children }) {
-  const { isAuthenticated, isOnboarded, loading } = useAuth();
+function OnboardingRoute({ children, requiredRole = 'student' }) {
+  const { user, isAuthenticated, isOnboarded, loading } = useAuth();
 
   if (loading) {
     return <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-zinc-400 font-mono text-xs">Loading application...</div>;
@@ -26,6 +27,14 @@ function OnboardingRoute({ children }) {
 
   if (isOnboarded) {
     return <Navigate to={FRONTEND_ROUTES.home} replace />;
+  }
+
+  if (requiredRole === 'recruiter' && !isRecruiterRole(user?.role)) {
+    return <Navigate to={FRONTEND_ROUTES.home} replace />;
+  }
+
+  if (requiredRole === 'student' && isRecruiterRole(user?.role)) {
+    return <Navigate to={FRONTEND_ROUTES.recruiterOnboarding} replace />;
   }
 
   return children;
@@ -57,8 +66,17 @@ export default function App() {
                 <Route
                   path={FRONTEND_ROUTES.onboarding}
                   element={
-                    <OnboardingRoute>
+                    <OnboardingRoute requiredRole="student">
                       <StudentOnboarding />
+                    </OnboardingRoute>
+                  }
+                />
+
+                <Route
+                  path={FRONTEND_ROUTES.recruiterOnboarding}
+                  element={
+                    <OnboardingRoute requiredRole="recruiter">
+                      <RecruiterOnboarding />
                     </OnboardingRoute>
                   }
                 />

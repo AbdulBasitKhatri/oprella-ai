@@ -7,9 +7,24 @@ export const FRONTEND_ROUTES = {
   login: '/login',
   signup: '/signup',
   onboarding: '/onboarding',
+  recruiterOnboarding: '/recruiter-onboarding',
   dashboard: '/dashboard',
   tracker: '/tracker',
   admin: '/admin',
+};
+
+export const isRecruiterRole = (role) => {
+  if (!role) return false;
+
+  const value = String(role).toLowerCase();
+  return (
+    value.includes('recruiter') ||
+    value.includes('organization') ||
+    value.includes('organisation') ||
+    value.includes('org') ||
+    value.includes('company') ||
+    value.includes('employer')
+  );
 };
 
 export const API_BASE_URL = API_BASE;
@@ -18,6 +33,7 @@ export const API_ROUTES = {
   auth: {
     login: withApiBase('/auth/login'),
     signup: withApiBase('/auth/signup'),
-    onboarding: withApiBase('/auth/onboarding'),
+    studentOnboarding: withApiBase('/auth/student-onboarding'),
+    recruiterOnboarding: withApiBase('/auth/recruiter-onboarding'),
   },
 };

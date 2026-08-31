@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { FRONTEND_ROUTES } from '../../config/appConfig';
+import { FRONTEND_ROUTES, isRecruiterRole } from '../../config/appConfig';
 
 // 1. Prevents unauthenticated users from seeing internal pages
 // 2. Redirects onboarded/non-onboarded users to their correct homes
@@ -23,12 +23,18 @@ export const ProtectedRoute = ({ requireOnboarding = true }) => {
 
 // Prevents already logged-in users from viewing Login / Signup pages
 export const PublicRoute = () => {
-  const { isAuthenticated, isOnboarded, loading } = useAuth();
+  const { user, isAuthenticated, isOnboarded, loading } = useAuth();
 
   if (loading) return null;
 
   if (isAuthenticated) {
-    return <Navigate to={isOnboarded ? FRONTEND_ROUTES.home : FRONTEND_ROUTES.onboarding} replace />;
+    const dashboardPath = isOnboarded
+      ? FRONTEND_ROUTES.home
+      : isRecruiterRole(user?.role)
+        ? FRONTEND_ROUTES.recruiterOnboarding
+        : FRONTEND_ROUTES.onboarding;
+
+    return <Navigate to={dashboardPath} replace />;
   }
 
   return <Outlet />;

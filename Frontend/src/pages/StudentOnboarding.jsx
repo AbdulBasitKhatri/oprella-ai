@@ -101,7 +101,7 @@ export default function StudentOnboarding() {
       // Use active token from AuthContext or fallback to local storage
       const activeToken = token || localStorage.getItem('token') || sessionStorage.getItem('token');
 
-      const response = await fetch(API_ROUTES.auth.onboarding, {
+      const response = await fetch(API_ROUTES.auth.studentOnboarding, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${activeToken}`,

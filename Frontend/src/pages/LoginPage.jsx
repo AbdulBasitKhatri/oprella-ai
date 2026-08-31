@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { LogIn, KeyRound, Mail, ArrowRight, Sparkles, ShieldCheck, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { API_ROUTES, FRONTEND_ROUTES } from '../config/appConfig';
+import { API_ROUTES, FRONTEND_ROUTES, isRecruiterRole } from '../config/appConfig';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login, isAuthenticated, isOnboarded, loading: authLoading } = useAuth();
+  const { user, login, isAuthenticated, isOnboarded, loading: authLoading } = useAuth();
 
   const [formData, setFormData] = useState({
     email: '',
@@ -21,7 +21,13 @@ export default function LoginPage() {
     if (authLoading) return;
 
     if (isAuthenticated) {
-      navigate(isOnboarded ? FRONTEND_ROUTES.home : FRONTEND_ROUTES.onboarding, { replace: true });
+      const targetRoute = isOnboarded
+        ? FRONTEND_ROUTES.home
+        : isRecruiterRole(user?.role)
+          ? FRONTEND_ROUTES.recruiterOnboarding
+          : FRONTEND_ROUTES.onboarding;
+
+      navigate(targetRoute, { replace: true });
     }
   }, [authLoading, isAuthenticated, isOnboarded, navigate]);
 
@@ -53,7 +59,11 @@ export default function LoginPage() {
 
       // Route dynamically based on onboarding status
       if (!data.user?.is_onboarded) {
-        navigate(FRONTEND_ROUTES.onboarding, { replace: true });
+        const targetRoute = isRecruiterRole(data.user?.role)
+          ? FRONTEND_ROUTES.recruiterOnboarding
+          : FRONTEND_ROUTES.onboarding;
+
+        navigate(targetRoute, { replace: true });
       } else {
         navigate(FRONTEND_ROUTES.home, { replace: true });
       }
