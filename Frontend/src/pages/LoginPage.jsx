@@ -65,7 +65,7 @@ export default function LoginPage() {
 
         navigate(targetRoute, { replace: true });
       } else {
-        navigate(FRONTEND_ROUTES.home, { replace: true });
+        navigate(isRecruiterRole(data.user?.role) ? FRONTEND_ROUTES.rDashboard : FRONTEND_ROUTES.home, { replace: true });
       }
     } catch (err) {
       setErrorMessage(err.message);

@@ -29,7 +29,9 @@ export const PublicRoute = () => {
 
   if (isAuthenticated) {
     const dashboardPath = isOnboarded
-      ? FRONTEND_ROUTES.home
+      ? isRecruiterRole(user?.role)
+        ? FRONTEND_ROUTES.rDashboard
+        : FRONTEND_ROUTES.home
       : isRecruiterRole(user?.role)
         ? FRONTEND_ROUTES.recruiterOnboarding
         : FRONTEND_ROUTES.onboarding;

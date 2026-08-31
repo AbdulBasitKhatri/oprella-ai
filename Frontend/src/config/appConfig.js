@@ -8,6 +8,9 @@ export const FRONTEND_ROUTES = {
   signup: '/signup',
   onboarding: '/onboarding',
   recruiterOnboarding: '/recruiter-onboarding',
+  rDashboard: '/r-dashboard',
+  postOpportunity: '/post-opportunity',
+  organizationProfile: '/organization-profile',
   dashboard: '/dashboard',
   tracker: '/tracker',
   admin: '/admin',
@@ -35,5 +38,11 @@ export const API_ROUTES = {
     signup: withApiBase('/auth/signup'),
     studentOnboarding: withApiBase('/auth/student-onboarding'),
     recruiterOnboarding: withApiBase('/auth/recruiter-onboarding'),
+    recruiterDashboard: withApiBase('/auth/recruiter/dashboard'),
+    recruiterProfile: withApiBase('/auth/recruiter/profile'),
+  },
+  opportunities: {
+    create: withApiBase('/opportunities/'),
+    list: withApiBase('/opportunities/'),
   },
 };

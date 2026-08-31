@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { FRONTEND_ROUTES } from '../config/appConfig';
+import { FRONTEND_ROUTES, isRecruiterRole } from '../config/appConfig';
 import { 
   LayoutDashboard, 
   BookmarkCheck, 
@@ -55,11 +55,18 @@ export default function Navbar() {
         {/* Navigation Tabs (Only visible when authenticated) */}
         {isAuthenticated && (
           <div className="hidden md:flex items-center gap-2">
-            {[
-              { path: FRONTEND_ROUTES.dashboard, label: 'Feed', icon: LayoutDashboard },
-              { path: FRONTEND_ROUTES.tracker, label: 'Tracker', icon: BookmarkCheck },
-              { path: FRONTEND_ROUTES.admin, label: 'Admin Panel', icon: Shield },
-            ].map(({ path, label, icon: Icon }) => {
+            {(isRecruiterRole(user?.role)
+              ? [
+                  { path: FRONTEND_ROUTES.rDashboard, label: 'Dashboard', icon: LayoutDashboard },
+                  { path: FRONTEND_ROUTES.postOpportunity, label: 'Post Opportunity', icon: BookmarkCheck },
+                  { path: FRONTEND_ROUTES.organizationProfile, label: 'Management', icon: Shield },
+                ]
+              : [
+                  { path: FRONTEND_ROUTES.dashboard, label: 'Feed', icon: LayoutDashboard },
+                  { path: FRONTEND_ROUTES.tracker, label: 'Tracker', icon: BookmarkCheck },
+                  { path: FRONTEND_ROUTES.admin, label: 'Admin Panel', icon: Shield },
+                ]
+            ).map(({ path, label, icon: Icon }) => {
               const active = isActive(path);
               return (
                 <Link

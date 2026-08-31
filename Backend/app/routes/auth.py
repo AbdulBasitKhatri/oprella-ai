@@ -67,6 +67,37 @@ class RecruiterOnboardingSchema(BaseModel):
     useCase: str
     additionalDetails: Optional[dict] = Field(default_factory=dict)
 
+class RecruiterProfileSchema(BaseModel):
+    companyName: str
+    industry: Optional[str] = None
+    companySize: Optional[str] = None
+    companyWebsite: Optional[str] = None
+    location: Optional[str] = None
+    contactName: Optional[str] = None
+    contactEmail: Optional[EmailStr] = None
+    hiringNeeds: Optional[str] = None
+    companyDescription: Optional[str] = None
+    useCase: Optional[str] = None
+    additionalDetails: Optional[dict] = Field(default_factory=dict)
+
+class RecentPostingSchema(BaseModel):
+    title: str
+    type: str
+    applicants: int = 0
+    status: str = "Active"
+
+class RecruiterDashboardResponse(BaseModel):
+    organizationName: str
+    email: EmailStr
+    industry: Optional[str] = None
+    location: Optional[str] = None
+    profileComplete: int = 0
+    liveListings: int = 0
+    applicants: int = 0
+    shortlistRate: str = "0%"
+    openTasks: int = 0
+    recentPostings: list[RecentPostingSchema] = Field(default_factory=list)
+
 # --------------------------------------------------------------------------
 # Helpers
 # --------------------------------------------------------------------------
@@ -173,6 +204,74 @@ async def process_cv_file(cv: Optional[UploadFile]) -> Optional[dict]:
         "size_bytes": len(file_bytes),
         "data_base64": base64.b64encode(file_bytes).decode("utf-8")
     }
+
+
+async def get_recruiter_profile_data(user: dict) -> RecruiterProfileSchema:
+    details = user.get("recruiter_onboarding_details") or {}
+    payload = {
+        "companyName": user.get("companyName") or details.get("companyName") or "",
+        "industry": details.get("industry"),
+        "companySize": details.get("companySize"),
+        "companyWebsite": details.get("companyWebsite"),
+        "location": details.get("location"),
+        "contactName": details.get("contactName"),
+        "contactEmail": details.get("contactEmail") or user.get("email"),
+        "hiringNeeds": details.get("hiringNeeds"),
+        "companyDescription": details.get("companyDescription"),
+        "useCase": details.get("useCase"),
+        "additionalDetails": details.get("additionalDetails") or {},
+    }
+    return RecruiterProfileSchema(**payload)
+
+
+async def get_recruiter_dashboard_data(db, user: dict) -> RecruiterDashboardResponse:
+    details = user.get("recruiter_onboarding_details") or {}
+    opportunities_cursor = db["opportunities"].find({"createdBy": str(user["_id"])})
+    recent_postings = []
+    async for item in opportunities_cursor:
+        recent_postings.append({
+            "title": item.get("title") or "Role Title",
+            "type": item.get("type") or item.get("category") or "Internship",
+            "applicants": int(item.get("applicants") or 0),
+            "status": (item.get("status") or "Active").title(),
+        })
+
+    live_listings = len(recent_postings)
+    applicants_total = sum(int(item.get("applicants", 0)) for item in recent_postings)
+    shortlisted = max(0, round((applicants_total * 0.64) / max(1, live_listings))) if live_listings else 0
+    profile_fields = [
+        details.get("companyName") or user.get("companyName"),
+        details.get("industry"),
+        details.get("companySize"),
+        details.get("location"),
+        details.get("contactName"),
+        details.get("contactEmail") or user.get("email"),
+        details.get("companyDescription"),
+        details.get("useCase"),
+    ]
+    completed = sum(1 for value in profile_fields if value and str(value).strip())
+    profile_complete = min(100, max(0, int((completed / len(profile_fields)) * 100))) if profile_fields else 0
+
+    return RecruiterDashboardResponse(
+        organizationName=user.get("companyName") or details.get("companyName") or "Your Organization",
+        email=user.get("email"),
+        industry=details.get("industry"),
+        location=details.get("location"),
+        profileComplete=profile_complete,
+        liveListings=live_listings,
+        applicants=applicants_total,
+        shortlistRate=f"{min(99, max(0, shortlisted))}%",
+        openTasks=max(0, 5 - min(4, live_listings)),
+        recentPostings=[
+            RecentPostingSchema(
+                title=str(item.get("title") or "Role Title"),
+                type=str(item.get("type") or "Internship"),
+                applicants=int(item.get("applicants") or 0),
+                status=str(item.get("status") or "Active"),
+            )
+            for item in recent_postings
+        ],
+    )
 
 
 # --------------------------------------------------------------------------
@@ -307,6 +406,7 @@ async def complete_recruiter_onboarding(
 
     update_data = {
         "is_onboarded": True,
+        "companyName": field_data.get("companyName"),
         "recruiter_onboarding_details": field_data,
         "role": user.get("role") or "Recruiter / Organization",
     }
@@ -326,3 +426,67 @@ async def complete_recruiter_onboarding(
         "is_onboarded": True,
         "role": user.get("role") or "Recruiter / Organization",
     }
+
+
+@router.get("/recruiter/dashboard", response_model=RecruiterDashboardResponse)
+async def recruiter_dashboard(authorization: Optional[str] = Header(None)):
+    user_id = await get_authenticated_user_id(authorization)
+    db = get_database()
+    user = await db["users"].find_one({"_id": ObjectId(user_id)})
+
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    if not is_recruiter_role(user.get("role")):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. Recruiter dashboard is only available to recruiter accounts."
+        )
+
+    return await get_recruiter_dashboard_data(db, user)
+
+
+@router.get("/recruiter/profile", response_model=RecruiterProfileSchema)
+async def recruiter_profile(authorization: Optional[str] = Header(None)):
+    user_id = await get_authenticated_user_id(authorization)
+    db = get_database()
+    user = await db["users"].find_one({"_id": ObjectId(user_id)})
+
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    if not is_recruiter_role(user.get("role")):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. Recruiter profile is only available to recruiter accounts."
+        )
+
+    return await get_recruiter_profile_data(user)
+
+
+@router.put("/recruiter/profile", response_model=RecruiterProfileSchema)
+async def update_recruiter_profile(
+    payload: RecruiterProfileSchema,
+    authorization: Optional[str] = Header(None)
+):
+    user_id = await get_authenticated_user_id(authorization)
+    db = get_database()
+    user = await db["users"].find_one({"_id": ObjectId(user_id)})
+
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    if not is_recruiter_role(user.get("role")):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. Recruiter profile is only available to recruiter accounts."
+        )
+
+    profile_payload = payload.model_dump()
+    update_data = {
+        "companyName": payload.companyName,
+        "recruiter_onboarding_details": profile_payload,
+    }
+
+    await db["users"].update_one({"_id": ObjectId(user_id)}, {"$set": update_data})
+    return payload

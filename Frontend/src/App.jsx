@@ -13,6 +13,9 @@ import RecruiterOnboarding from './pages/RecruiterOnboarding';
 import DashboardPage from './pages/DashboardPage';
 import TrackerPage from './pages/TrackerPage';
 import AdminPage from './pages/AdminPage';
+import RDashboard from './pages/RDashboard';
+import PostOpportunity from './pages/PostOpportunity';
+import OrganizationProfile from './pages/OrganizationProfile';
 
 function OnboardingRoute({ children, requiredRole = 'student' }) {
   const { user, isAuthenticated, isOnboarded, loading } = useAuth();
@@ -26,7 +29,7 @@ function OnboardingRoute({ children, requiredRole = 'student' }) {
   }
 
   if (isOnboarded) {
-    return <Navigate to={FRONTEND_ROUTES.home} replace />;
+    return <Navigate to={isRecruiterRole(user?.role) ? FRONTEND_ROUTES.rDashboard : FRONTEND_ROUTES.home} replace />;
   }
 
   if (requiredRole === 'recruiter' && !isRecruiterRole(user?.role)) {
@@ -61,6 +64,9 @@ export default function App() {
                   <Route path={FRONTEND_ROUTES.dashboard} element={<DashboardPage />} />
                   <Route path={FRONTEND_ROUTES.tracker} element={<TrackerPage />} />
                   <Route path={FRONTEND_ROUTES.admin} element={<AdminPage />} />
+                  <Route path={FRONTEND_ROUTES.rDashboard} element={<RDashboard />} />
+                  <Route path={FRONTEND_ROUTES.postOpportunity} element={<PostOpportunity />} />
+                  <Route path={FRONTEND_ROUTES.organizationProfile} element={<OrganizationProfile />} />
                 </Route>
 
                 <Route
