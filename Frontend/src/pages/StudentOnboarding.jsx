@@ -81,11 +81,18 @@ export default function StudentOnboarding() {
 
     try {
       const dataPayload = new FormData();
-      
-      // Append form fields individually for FastAPI Form parsing
-      Object.keys(formData).forEach((key) => {
-        dataPayload.append(key, formData[key]);
-      });
+      const detailsPayload = {
+        education: formData.education,
+        degreeField: formData.degreeField,
+        semester: formData.semester,
+        skills: formData.skills,
+        interests: formData.interests,
+        location: formData.location,
+        experience: formData.experience,
+        careerGoals: formData.careerGoals,
+      };
+
+      dataPayload.append('details', JSON.stringify(detailsPayload));
 
       if (cvFile) {
         dataPayload.append('cv', cvFile);

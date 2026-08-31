@@ -36,10 +36,11 @@ export default function SignupPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          full_name: formData.fullName,
+          fullName: formData.fullName,
           email: formData.email,
           role: formData.role,
           password: formData.password,
+          acceptTerms: formData.acceptTerms,
         }),
       });
 
