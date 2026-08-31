@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { FRONTEND_ROUTES } from '../config/appConfig';
 import { 
   LayoutDashboard, 
   BookmarkCheck, 
@@ -25,7 +26,7 @@ export default function Navbar() {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate(FRONTEND_ROUTES.login);
   };
 
   return (
@@ -37,7 +38,7 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
         
         {/* Brand Logo */}
-        <Link to="/" className="flex items-center gap-3 group">
+        <Link to={FRONTEND_ROUTES.home} className="flex items-center gap-3 group">
           <div className="w-8 h-8 bg-zinc-950 text-zinc-100 dark:bg-zinc-100 dark:text-zinc-950 flex items-center justify-center font-black text-sm rounded-none shadow-md transition-all duration-200">
             <Sparkles size={16} />
           </div>
@@ -55,9 +56,9 @@ export default function Navbar() {
         {isAuthenticated && (
           <div className="hidden md:flex items-center gap-2">
             {[
-              { path: '/dashboard', label: 'Feed', icon: LayoutDashboard },
-              { path: '/tracker', label: 'Tracker', icon: BookmarkCheck },
-              { path: '/admin', label: 'Admin Panel', icon: Shield },
+              { path: FRONTEND_ROUTES.dashboard, label: 'Feed', icon: LayoutDashboard },
+              { path: FRONTEND_ROUTES.tracker, label: 'Tracker', icon: BookmarkCheck },
+              { path: FRONTEND_ROUTES.admin, label: 'Admin Panel', icon: Shield },
             ].map(({ path, label, icon: Icon }) => {
               const active = isActive(path);
               return (
@@ -121,9 +122,9 @@ export default function Navbar() {
           ) : (
             <>
               <Link
-                to="/login"
+                to={FRONTEND_ROUTES.login}
                 className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider flex items-center gap-2 transition-all duration-200 rounded-none border ${
-                  isActive('/login')
+                  isActive(FRONTEND_ROUTES.login)
                     ? 'bg-zinc-900 text-white dark:bg-zinc-200 dark:text-zinc-950 font-bold'
                     : 'border-zinc-300 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 bg-zinc-100/60 dark:bg-zinc-900/60 hover:border-zinc-400 dark:hover:border-zinc-600'
                 }`}
@@ -132,9 +133,9 @@ export default function Navbar() {
               </Link>
 
               <Link
-                to="/signup"
+                to={FRONTEND_ROUTES.signup}
                 className={`px-4 py-2 text-xs font-extrabold uppercase tracking-wider flex items-center gap-2 transition-all duration-200 rounded-none shadow-sm ${
-                  isActive('/signup')
+                  isActive(FRONTEND_ROUTES.signup)
                     ? 'bg-zinc-950 text-white dark:bg-white dark:text-zinc-950'
                     : 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-950 hover:bg-zinc-800 dark:hover:bg-white'
                 }`}

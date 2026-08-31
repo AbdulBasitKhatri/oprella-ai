@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { UserPlus, User, Mail, KeyRound, Code, ArrowRight, Sparkles, ShieldCheck, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { API_ROUTES, FRONTEND_ROUTES } from '../config/appConfig';
 
 export default function SignupPage() {
   const navigate = useNavigate();
@@ -31,7 +32,7 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8000/auth/signup', {
+      const response = await fetch(API_ROUTES.auth.signup, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -52,9 +53,9 @@ export default function SignupPage() {
       login(data, true);
 
       // Navigate to onboarding with state preserved
-      navigate('/onboarding', { 
+      navigate(FRONTEND_ROUTES.onboarding, {
         state: { fromSignupSuccess: true },
-        replace: true 
+        replace: true,
       });
 
     } catch (err) {
@@ -245,7 +246,7 @@ export default function SignupPage() {
           <p className="text-xs text-zinc-500 dark:text-zinc-400 font-mono">
             Already registered?{' '}
             <Link
-              to="/login"
+              to={FRONTEND_ROUTES.login}
               className="font-bold text-zinc-900 dark:text-zinc-100 uppercase underline underline-offset-4 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
             >
               Sign In

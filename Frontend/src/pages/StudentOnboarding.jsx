@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext'; // Adjust path based on your folder structure
+import { useAuth } from '../context/AuthContext';
+import { API_ROUTES, FRONTEND_ROUTES } from '../config/appConfig';
 import {
   BookOpen,
   GraduationCap,
@@ -93,7 +94,7 @@ export default function StudentOnboarding() {
       // Use active token from AuthContext or fallback to local storage
       const activeToken = token || localStorage.getItem('token') || sessionStorage.getItem('token');
 
-      const response = await fetch('http://localhost:8000/auth/onboarding', {
+      const response = await fetch(API_ROUTES.auth.onboarding, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${activeToken}`,
@@ -115,7 +116,7 @@ export default function StudentOnboarding() {
       }
 
       // Smooth client-side navigation
-      navigate('/', { replace: true });
+      navigate(FRONTEND_ROUTES.home, { replace: true });
     } catch (err) {
       setSubmitError(err.message);
     } finally {

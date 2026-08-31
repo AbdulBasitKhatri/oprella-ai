@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { LogIn, KeyRound, Mail, ArrowRight, Sparkles, ShieldCheck, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { API_ROUTES, FRONTEND_ROUTES } from '../config/appConfig';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -20,7 +21,7 @@ export default function LoginPage() {
     if (authLoading) return;
 
     if (isAuthenticated) {
-      navigate(isOnboarded ? '/' : '/onboarding', { replace: true });
+      navigate(isOnboarded ? FRONTEND_ROUTES.home : FRONTEND_ROUTES.onboarding, { replace: true });
     }
   }, [authLoading, isAuthenticated, isOnboarded, navigate]);
 
@@ -30,7 +31,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8000/auth/login', {
+      const response = await fetch(API_ROUTES.auth.login, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -52,9 +53,9 @@ export default function LoginPage() {
 
       // Route dynamically based on onboarding status
       if (!data.user?.is_onboarded) {
-        navigate('/onboarding', { replace: true });
+        navigate(FRONTEND_ROUTES.onboarding, { replace: true });
       } else {
-        navigate('/', { replace: true });
+        navigate(FRONTEND_ROUTES.home, { replace: true });
       }
     } catch (err) {
       setErrorMessage(err.message);
@@ -187,7 +188,7 @@ export default function LoginPage() {
           <p className="text-xs text-zinc-500 dark:text-zinc-400 font-mono">
             New to Oprella?{' '}
             <Link
-              to="/signup"
+              to={FRONTEND_ROUTES.signup}
               className="font-bold text-zinc-900 dark:text-zinc-100 uppercase underline underline-offset-4 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
             >
               Create Account

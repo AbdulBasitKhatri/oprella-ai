@@ -4,6 +4,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import { ProtectedRoute, PublicRoute } from './components/routes/AuthRoutes';
+import { FRONTEND_ROUTES } from './config/appConfig';
 import LandingPage from './pages/LandingPage';
 import SignupPage from './pages/SignupPage';
 import LoginPage from './pages/LoginPage';
@@ -20,11 +21,11 @@ function OnboardingRoute({ children }) {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={FRONTEND_ROUTES.login} replace />;
   }
 
   if (isOnboarded) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={FRONTEND_ROUTES.home} replace />;
   }
 
   return children;
@@ -40,21 +41,21 @@ export default function App() {
 
             <main className="pt-16 min-h-[calc(100vh-4rem)]">
               <Routes>
-                <Route path="/" element={<LandingPage />} />
+                <Route path={FRONTEND_ROUTES.home} element={<LandingPage />} />
 
                 <Route element={<PublicRoute />}>
-                  <Route path="/signup" element={<SignupPage />} />
-                  <Route path="/login" element={<LoginPage />} />
+                  <Route path={FRONTEND_ROUTES.signup} element={<SignupPage />} />
+                  <Route path={FRONTEND_ROUTES.login} element={<LoginPage />} />
                 </Route>
 
                 <Route element={<ProtectedRoute />}>
-                  <Route path="/dashboard" element={<DashboardPage />} />
-                  <Route path="/tracker" element={<TrackerPage />} />
-                  <Route path="/admin" element={<AdminPage />} />
+                  <Route path={FRONTEND_ROUTES.dashboard} element={<DashboardPage />} />
+                  <Route path={FRONTEND_ROUTES.tracker} element={<TrackerPage />} />
+                  <Route path={FRONTEND_ROUTES.admin} element={<AdminPage />} />
                 </Route>
 
                 <Route
-                  path="/onboarding"
+                  path={FRONTEND_ROUTES.onboarding}
                   element={
                     <OnboardingRoute>
                       <StudentOnboarding />
@@ -62,7 +63,7 @@ export default function App() {
                   }
                 />
 
-                <Route path="*" element={<Navigate to="/" replace />} />
+                <Route path="*" element={<Navigate to={FRONTEND_ROUTES.home} replace />} />
               </Routes>
             </main>
           </div>
