@@ -63,6 +63,7 @@ export default function Navbar() {
                 ]
               : [
                   { path: FRONTEND_ROUTES.dashboard, label: 'Feed', icon: LayoutDashboard },
+                  { path: FRONTEND_ROUTES.studentProfile, label: 'Profile', icon: User },
                   { path: FRONTEND_ROUTES.tracker, label: 'Tracker', icon: BookmarkCheck },
                   { path: FRONTEND_ROUTES.admin, label: 'Admin Panel', icon: Shield },
                 ]

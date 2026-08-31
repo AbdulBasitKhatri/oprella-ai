@@ -2,7 +2,7 @@ import json
 import base64
 from typing import Optional, Type, TypeVar
 from fastapi import APIRouter, HTTPException, status, Header, UploadFile, File, Form
-from pydantic import BaseModel, EmailStr, Field, ValidationError
+from pydantic import BaseModel, EmailStr, Field, ValidationError, field_validator
 from bson import ObjectId
 import jwt
 
@@ -53,6 +53,30 @@ class StudentOnboardingSchema(BaseModel):
     location: str
     experience: str
     careerGoals: str
+
+class StudentProfileSchema(BaseModel):
+    fullName: Optional[str] = None
+    email: Optional[EmailStr] = None
+    education: Optional[str] = None
+    degreeField: Optional[str] = None
+    semester: Optional[str] = None
+    skills: Optional[list[str]] = Field(default_factory=list)
+    interests: Optional[str] = None
+    location: Optional[str] = None
+    experience: Optional[str] = None
+    careerGoals: Optional[str] = None
+    cvFileName: Optional[str] = None
+
+    @field_validator("skills", mode="before")
+    @classmethod
+    def normalize_skills(cls, value):
+        if value is None:
+            return []
+        if isinstance(value, str):
+            return [item.strip() for item in value.split(",") if item.strip()]
+        if isinstance(value, list):
+            return [str(item).strip() for item in value if str(item).strip()]
+        return value
 
 class RecruiterOnboardingSchema(BaseModel):
     companyName: str
@@ -204,6 +228,33 @@ async def process_cv_file(cv: Optional[UploadFile]) -> Optional[dict]:
         "size_bytes": len(file_bytes),
         "data_base64": base64.b64encode(file_bytes).decode("utf-8")
     }
+
+
+def get_student_onboarding_details(user: dict) -> dict:
+    if user.get("student_onboarding_details") is not None:
+        return user.get("student_onboarding_details") or {}
+    if user.get("onboarding_details") is not None:
+        return user.get("onboarding_details") or {}
+    return {}
+
+
+async def get_student_profile_data(user: dict) -> StudentProfileSchema:
+    details = get_student_onboarding_details(user)
+    cv_data = user.get("cv") or {}
+    payload = {
+        "fullName": user.get("fullName") or details.get("fullName"),
+        "email": user.get("email"),
+        "education": details.get("education"),
+        "degreeField": details.get("degreeField"),
+        "semester": details.get("semester"),
+        "skills": details.get("skills") or [],
+        "interests": details.get("interests"),
+        "location": details.get("location"),
+        "experience": details.get("experience"),
+        "careerGoals": details.get("careerGoals"),
+        "cvFileName": cv_data.get("filename") if isinstance(cv_data, dict) else None,
+    }
+    return StudentProfileSchema(**payload)
 
 
 async def get_recruiter_profile_data(user: dict) -> RecruiterProfileSchema:
@@ -362,6 +413,7 @@ async def complete_student_onboarding(
     update_data = {
         "is_onboarded": True,
         "student_onboarding_details": field_data,
+        "onboarding_details": field_data,
         "role": user.get("role") or "Student / Researcher",
     }
     if cv_metadata:
@@ -426,6 +478,177 @@ async def complete_recruiter_onboarding(
         "is_onboarded": True,
         "role": user.get("role") or "Recruiter / Organization",
     }
+
+
+@router.get("/student/profile", response_model=StudentProfileSchema)
+async def student_profile(authorization: Optional[str] = Header(None)):
+    user_id = await get_authenticated_user_id(authorization)
+    db = get_database()
+    user = await db["users"].find_one({"_id": ObjectId(user_id)})
+
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    if is_recruiter_role(user.get("role")):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. Student profile is only available to student accounts."
+        )
+
+    return await get_student_profile_data(user)
+
+
+@router.put("/student/profile", response_model=StudentProfileSchema)
+async def update_student_profile(
+    details: str = Form(...),
+    cv: Optional[UploadFile] = File(None),
+    authorization: Optional[str] = Header(None)
+):
+    user_id = await get_authenticated_user_id(authorization)
+    db = get_database()
+    user = await db["users"].find_one({"_id": ObjectId(user_id)})
+
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    if is_recruiter_role(user.get("role")):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. Student profile is only available to student accounts."
+        )
+
+    try:
+        details_dict = json.loads(details)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid student profile JSON: {str(exc)}"
+        )
+
+    payload = StudentProfileSchema.model_validate(details_dict)
+    cv_metadata = await process_cv_file(cv)
+
+    student_details = {
+        "education": payload.education,
+        "degreeField": payload.degreeField,
+        "semester": payload.semester,
+        "skills": payload.skills or [],
+        "interests": payload.interests,
+        "location": payload.location,
+        "experience": payload.experience,
+        "careerGoals": payload.careerGoals,
+    }
+
+    update_data = {
+        "fullName": payload.fullName or user.get("fullName"),
+        "email": payload.email.lower() if payload.email else user.get("email"),
+        "student_onboarding_details": student_details,
+        "onboarding_details": student_details,
+    }
+
+    if cv_metadata:
+        update_data["cv"] = cv_metadata
+
+    await db["users"].update_one({"_id": ObjectId(user_id)}, {"$set": update_data})
+
+    response_payload = {
+        "fullName": payload.fullName or user.get("fullName"),
+        "email": payload.email or user.get("email"),
+        "education": payload.education,
+        "degreeField": payload.degreeField,
+        "semester": payload.semester,
+        "skills": payload.skills or [],
+        "interests": payload.interests,
+        "location": payload.location,
+        "experience": payload.experience,
+        "careerGoals": payload.careerGoals,
+        "cvFileName": cv_metadata.get("filename") if cv_metadata else (user.get("cv") or {}).get("filename"),
+    }
+    return StudentProfileSchema(**response_payload)
+
+
+@router.get("/student/saved-opportunities")
+async def get_student_saved_opportunities(authorization: Optional[str] = Header(None)):
+    user_id = await get_authenticated_user_id(authorization)
+    db = get_database()
+    user = await db["users"].find_one({"_id": ObjectId(user_id)})
+
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    if is_recruiter_role(user.get("role")):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. Saved opportunities are only available to student accounts."
+        )
+
+    saved = user.get("savedOpportunities") or []
+    return {"savedOpportunityIds": [str(item) for item in saved]}
+
+
+@router.post("/student/saved-opportunities/{opportunity_id}")
+async def save_student_opportunity(opportunity_id: str, authorization: Optional[str] = Header(None)):
+    user_id = await get_authenticated_user_id(authorization)
+    db = get_database()
+    user = await db["users"].find_one({"_id": ObjectId(user_id)})
+
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    if is_recruiter_role(user.get("role")):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. Saved opportunities are only available to student accounts."
+        )
+
+    saved = user.get("savedOpportunities") or []
+    item_id = str(opportunity_id)
+    if item_id not in saved:
+        saved.append(item_id)
+        await db["users"].update_one({"_id": ObjectId(user_id)}, {"$set": {"savedOpportunities": saved}})
+
+    return {"savedOpportunityIds": [str(item) for item in saved]}
+
+
+@router.delete("/student/saved-opportunities/{opportunity_id}")
+async def unsave_student_opportunity(opportunity_id: str, authorization: Optional[str] = Header(None)):
+    user_id = await get_authenticated_user_id(authorization)
+    db = get_database()
+    user = await db["users"].find_one({"_id": ObjectId(user_id)})
+
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    if is_recruiter_role(user.get("role")):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. Saved opportunities are only available to student accounts."
+        )
+
+    saved = [str(item) for item in (user.get("savedOpportunities") or [])]
+    item_id = str(opportunity_id)
+    updated = [item for item in saved if item != item_id]
+    await db["users"].update_one({"_id": ObjectId(user_id)}, {"$set": {"savedOpportunities": updated}})
+    return {"savedOpportunityIds": updated}
+
+
+@router.delete("/student/delete-account")
+async def delete_student_account(authorization: Optional[str] = Header(None)):
+    user_id = await get_authenticated_user_id(authorization)
+    db = get_database()
+    user = await db["users"].find_one({"_id": ObjectId(user_id)})
+
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    if is_recruiter_role(user.get("role")):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. Student account deletion is only for student accounts."
+        )
+
+    await db["users"].delete_one({"_id": ObjectId(user_id)})
+    return {"message": "Student account deleted successfully"}
 
 
 @router.get("/recruiter/dashboard", response_model=RecruiterDashboardResponse)

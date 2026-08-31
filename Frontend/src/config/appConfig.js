@@ -10,8 +10,10 @@ export const FRONTEND_ROUTES = {
   recruiterOnboarding: '/recruiter-onboarding',
   rDashboard: '/r-dashboard',
   postOpportunity: '/post-opportunity',
+  manageOpportunities: '/manage-opportunities',
   organizationProfile: '/organization-profile',
   dashboard: '/dashboard',
+  studentProfile: '/student-profile',
   tracker: '/tracker',
   admin: '/admin',
 };
@@ -30,6 +32,11 @@ export const isRecruiterRole = (role) => {
   );
 };
 
+export const isStudentRole = (role) => {
+  if (!role) return false;
+  return !isRecruiterRole(role);
+};
+
 export const API_BASE_URL = API_BASE;
 
 export const API_ROUTES = {
@@ -44,5 +51,7 @@ export const API_ROUTES = {
   opportunities: {
     create: withApiBase('/opportunities/'),
     list: withApiBase('/opportunities/'),
+    mine: withApiBase('/opportunities/my'),
+    byId: (id) => withApiBase(`/opportunities/${id}`),
   },
 };

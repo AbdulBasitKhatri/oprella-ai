@@ -126,7 +126,7 @@ export default function RDashboard() {
                   <Sparkles size={15} className="text-zinc-700 dark:text-zinc-300" />
                   <h2 className="text-xs font-mono uppercase tracking-[0.2em] text-zinc-700 dark:text-zinc-300">Recent postings</h2>
                 </div>
-                <Link to={FRONTEND_ROUTES.postOpportunity} className="flex items-center gap-1 text-[10px] font-mono uppercase tracking-[0.18em] text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100">
+                <Link to={FRONTEND_ROUTES.manageOpportunities} className="flex items-center gap-1 text-[10px] font-mono uppercase tracking-[0.18em] text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100">
                   Manage all <ArrowRight size={12} />
                 </Link>
               </div>

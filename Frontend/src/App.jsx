@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
-import { ProtectedRoute, PublicRoute } from './components/routes/AuthRoutes';
+import { ProtectedRoute, PublicRoute, StudentRoute, RecruiterRoute } from './components/routes/AuthRoutes';
 import { FRONTEND_ROUTES, isRecruiterRole } from './config/appConfig';
 import LandingPage from './pages/LandingPage';
 import SignupPage from './pages/SignupPage';
@@ -11,10 +11,12 @@ import LoginPage from './pages/LoginPage';
 import StudentOnboarding from './pages/StudentOnboarding';
 import RecruiterOnboarding from './pages/RecruiterOnboarding';
 import DashboardPage from './pages/DashboardPage';
+import StudentProfile from './pages/StudentProfile';
 import TrackerPage from './pages/TrackerPage';
 import AdminPage from './pages/AdminPage';
 import RDashboard from './pages/RDashboard';
 import PostOpportunity from './pages/PostOpportunity';
+import ManageOpportunities from './pages/ManageOpportunities';
 import OrganizationProfile from './pages/OrganizationProfile';
 
 function OnboardingRoute({ children, requiredRole = 'student' }) {
@@ -29,7 +31,7 @@ function OnboardingRoute({ children, requiredRole = 'student' }) {
   }
 
   if (isOnboarded) {
-    return <Navigate to={isRecruiterRole(user?.role) ? FRONTEND_ROUTES.rDashboard : FRONTEND_ROUTES.home} replace />;
+    return <Navigate to={isRecruiterRole(user?.role) ? FRONTEND_ROUTES.rDashboard : FRONTEND_ROUTES.dashboard} replace />;
   }
 
   if (requiredRole === 'recruiter' && !isRecruiterRole(user?.role)) {
@@ -60,12 +62,17 @@ export default function App() {
                   <Route path={FRONTEND_ROUTES.login} element={<LoginPage />} />
                 </Route>
 
-                <Route element={<ProtectedRoute />}>
+                <Route element={<StudentRoute />}>
                   <Route path={FRONTEND_ROUTES.dashboard} element={<DashboardPage />} />
+                  <Route path={FRONTEND_ROUTES.studentProfile} element={<StudentProfile />} />
                   <Route path={FRONTEND_ROUTES.tracker} element={<TrackerPage />} />
                   <Route path={FRONTEND_ROUTES.admin} element={<AdminPage />} />
+                </Route>
+
+                <Route element={<RecruiterRoute />}>
                   <Route path={FRONTEND_ROUTES.rDashboard} element={<RDashboard />} />
                   <Route path={FRONTEND_ROUTES.postOpportunity} element={<PostOpportunity />} />
+                  <Route path={FRONTEND_ROUTES.manageOpportunities} element={<ManageOpportunities />} />
                   <Route path={FRONTEND_ROUTES.organizationProfile} element={<OrganizationProfile />} />
                 </Route>
 

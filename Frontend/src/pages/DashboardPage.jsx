@@ -14,6 +14,7 @@ import {
   TrendingUp 
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { FRONTEND_ROUTES } from '../config/appConfig';
 import { OPPORTUNITY_CATEGORIES, getCategoryLabel } from '../constants/categories';
 
 export default function StudentDashboard() {
@@ -26,6 +27,29 @@ export default function StudentDashboard() {
   const [savedIds, setSavedIds] = useState([]);
 
   useEffect(() => {
+    const fetchSavedOpportunities = async () => {
+      if (!token) {
+        setSavedIds([]);
+        return;
+      }
+
+      try {
+        const response = await fetch('http://localhost:8000/auth/student/saved-opportunities', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setSavedIds(Array.isArray(data.savedOpportunityIds) ? data.savedOpportunityIds : []);
+        }
+      } catch (err) {
+        console.error('Failed to load saved opportunities:', err);
+      }
+    };
+
     const fetchOpportunities = async () => {
       setLoading(true);
       try {
@@ -35,73 +59,66 @@ export default function StudentDashboard() {
             'Content-Type': 'application/json'
           }
         });
-        if (!response.ok) throw new Error('Failed to load opportunities');
+
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          throw new Error(payload.detail || 'Failed to load opportunities');
+        }
+
         const data = await response.json();
-        setOpportunities(data);
+        const normalized = (Array.isArray(data) ? data : []).map((opp) => ({
+          ...opp,
+          id: opp._id || opp.id,
+          title: opp.title || 'Untitled opportunity',
+          organization: opp.organization || 'Organization',
+          type: opp.category || opp.type || 'INTERNSHIP',
+          location: opp.location || 'Remote',
+          deadline: opp.applicationDeadline || opp.deadline || 'TBD',
+          match_score: opp.matchScore || 0,
+          apply_url: opp.applicationUrl || opp.apply_url || '#',
+        }));
+
+        setOpportunities(normalized);
       } catch (err) {
-        // Mock fallback data representing various new categories
-        setOpportunities([
-          {
-            id: '1',
-            title: 'Frontend Developer Intern',
-            organization: 'Cortesa Labs',
-            type: 'INTERNSHIP',
-            location: 'Remote',
-            deadline: '2026-09-15',
-            match_score: 94,
-            matched_skills: ['React', 'JavaScript', 'Tailwind CSS'],
-            missing_skills: ['TypeScript'],
-            apply_url: 'https://example.com/apply/1'
-          },
-          {
-            id: '2',
-            title: 'AI Innovation Challenge 2026',
-            organization: 'TechForge',
-            type: 'HACKATHON',
-            location: 'Online',
-            deadline: '2026-10-01',
-            match_score: 88,
-            matched_skills: ['Python', 'Problem Solving'],
-            missing_skills: ['FastAPI'],
-            apply_url: 'https://example.com/apply/2'
-          },
-          {
-            id: '3',
-            title: 'Global Youth Exchange Leadership Summit',
-            organization: 'World Youth Forum',
-            type: 'YOUTH_PROGRAM',
-            location: 'Istanbul, Turkey',
-            deadline: '2026-10-15',
-            match_score: 82,
-            matched_skills: ['Leadership', 'Communication'],
-            missing_skills: [],
-            apply_url: 'https://example.com/apply/3'
-          },
-          {
-            id: '4',
-            title: 'Full-Stack Web Development Bootcamp',
-            organization: 'Styra Academy',
-            type: 'BOOTCAMP',
-            location: 'Karachi, PK',
-            deadline: '2026-09-30',
-            match_score: 91,
-            matched_skills: ['HTML/CSS', 'JavaScript'],
-            missing_skills: ['Node.js'],
-            apply_url: 'https://example.com/apply/4'
-          }
-        ]);
+        setOpportunities([]);
+        console.error('Failed to load real opportunities:', err);
       } finally {
         setLoading(false);
       }
     };
 
+    fetchSavedOpportunities();
     fetchOpportunities();
   }, [token]);
 
-  const toggleSave = (id) => {
-    setSavedIds(prev => 
-      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
-    );
+  const toggleSave = async (id) => {
+    if (!token) return;
+
+    const isSaved = savedIds.includes(String(id));
+
+    try {
+      const endpoint = isSaved
+        ? `http://localhost:8000/auth/student/saved-opportunities/${id}`
+        : `http://localhost:8000/auth/student/saved-opportunities/${id}`;
+
+      const response = await fetch(endpoint, {
+        method: isSaved ? 'DELETE' : 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.detail || 'Unable to save opportunity.');
+      }
+
+      const data = await response.json();
+      setSavedIds(Array.isArray(data.savedOpportunityIds) ? data.savedOpportunityIds : []);
+    } catch (err) {
+      console.error('Toggle save failed:', err);
+    }
   };
 
   const filteredOpportunities = opportunities.filter(opp => {
@@ -135,7 +152,7 @@ export default function StudentDashboard() {
           </div>
 
           <Link
-            to="/profile"
+            to={FRONTEND_ROUTES.studentProfile}
             className="px-4 py-2.5 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 border border-zinc-300 dark:border-zinc-700 font-bold text-xs uppercase tracking-widest transition rounded-none flex items-center gap-2"
           >
             <GraduationCap size={15} /> Edit Profile
@@ -269,7 +286,9 @@ export default function StudentDashboard() {
 
                         <div className="flex items-center gap-2">
                           <button
+                            type="button"
                             onClick={() => toggleSave(opp.id)}
+                            aria-label={isSaved ? 'Remove from saved opportunities' : 'Save opportunity'}
                             className={`p-2 border transition rounded-none ${
                               isSaved
                                 ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-950 border-zinc-900 dark:border-zinc-100'
