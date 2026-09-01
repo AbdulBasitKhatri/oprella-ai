@@ -16,6 +16,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { FRONTEND_ROUTES } from '../config/appConfig';
 import { OPPORTUNITY_CATEGORIES, getCategoryLabel } from '../constants/categories';
+import ApplicationPreviewModal from '../components/ApplicationPreviewModal';
 
 export default function StudentDashboard() {
   const { user, token } = useAuth();
@@ -25,6 +26,7 @@ export default function StudentDashboard() {
   const [opportunities, setOpportunities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [savedIds, setSavedIds] = useState([]);
+  const [selectedOpportunity, setSelectedOpportunity] = useState(null);
 
   useEffect(() => {
     const fetchSavedOpportunities = async () => {
@@ -298,14 +300,11 @@ export default function StudentDashboard() {
                             <Bookmark size={14} className={isSaved ? 'fill-current' : ''} />
                           </button>
 
-                          <a
-                            href={opp.apply_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <button
+                            type="button"
+                            onClick={() => setSelectedOpportunity(opp)}
                             className="px-4 py-2 bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-950 font-extrabold text-[11px] uppercase tracking-widest flex items-center gap-1.5 hover:bg-zinc-800 dark:hover:bg-white transition rounded-none"
-                          >
-                            Apply Now <ExternalLink size={13} />
-                          </a>
+                          >Apply Now <ExternalLink size={13} /></button>
                         </div>
                       </div>
                     </div>
@@ -332,6 +331,7 @@ export default function StudentDashboard() {
 
         </div>
       </main>
+      {selectedOpportunity && <ApplicationPreviewModal opportunity={selectedOpportunity} token={token} onClose={() => setSelectedOpportunity(null)} onApplied={() => setSelectedOpportunity(null)} />}
     </div>
   );
 }

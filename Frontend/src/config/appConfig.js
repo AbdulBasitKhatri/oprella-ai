@@ -54,4 +54,16 @@ export const API_ROUTES = {
     mine: withApiBase('/opportunities/my'),
     byId: (id) => withApiBase(`/opportunities/${id}`),
   },
+  applications: {
+    preview: (id) => withApiBase(`/applications/preview/${id}`),
+    apply: (id) => withApiBase(`/applications/${id}`),
+    mine: withApiBase('/applications/my'),
+    forOpportunity: (id) => withApiBase(`/applications/opportunity/${id}`),
+    status: (id) => withApiBase(`/applications/${id}/status`),
+    message: (id) => withApiBase(`/applications/${id}/message`),
+  },
+  notifications: {
+    list: withApiBase('/notifications'),
+    read: (id) => withApiBase(`/notifications/${id}/read`),
+  },
 };

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { PencilLine, Trash2, Plus, ArrowRight, BriefcaseBusiness } from 'lucide-react';
+import { PencilLine, Trash2, Plus, ArrowRight, BriefcaseBusiness, Users, X, Send, UserRound } from 'lucide-react';
 import { API_ROUTES, FRONTEND_ROUTES } from '../config/appConfig';
 import { useAuth } from '../context/AuthContext';
 
@@ -10,6 +10,13 @@ export default function ManageOpportunities() {
   const [opportunities, setOpportunities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [applicants, setApplicants] = useState([]);
+  const [selectedApplicant, setSelectedApplicant] = useState(null);
+  const [message, setMessage] = useState({ subject: 'Interview invitation', body: '' });
+  const templates = {
+    interview: { subject: 'Interview invitation', body: 'Hello, we reviewed your application and would like to invite you for an interview. Please reply with your availability.' },
+    update: { subject: 'Application update', body: 'Hello, thank you for applying. We are still reviewing applications and will be in touch with the next update.' },
+  };
 
   const fetchOpportunities = async () => {
     if (!token) {
@@ -66,6 +73,27 @@ export default function ManageOpportunities() {
     } catch (err) {
       setError(err.message || 'Unable to delete opportunity.');
     }
+  };
+
+  const viewApplicants = async (id) => {
+    try {
+      const response = await fetch(API_ROUTES.applications.forOpportunity(id), { headers: { Authorization: `Bearer ${token}` } });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || 'Unable to load applicants.');
+      setApplicants(data); setSelectedApplicant(data[0] || null);
+    } catch (err) { setError(err.message); }
+  };
+
+  const updateStatus = async (status) => {
+    if (!selectedApplicant) return;
+    const response = await fetch(API_ROUTES.applications.status(selectedApplicant._id), { method: 'PATCH', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
+    if (response.ok) setSelectedApplicant((current) => ({ ...current, status }));
+  };
+
+  const sendMessage = async (event) => {
+    event.preventDefault();
+    const response = await fetch(API_ROUTES.applications.message(selectedApplicant._id), { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(message) });
+    if (response.ok) setMessage({ subject: 'Interview invitation', body: '' });
   };
 
   return (
@@ -126,6 +154,7 @@ export default function ManageOpportunities() {
                     >
                       <PencilLine size={14} /> Edit
                     </button>
+                    <button type="button" onClick={() => viewApplicants(opp._id)} className="inline-flex items-center gap-2 border border-zinc-300 bg-white px-3 py-2 text-[10px] font-extrabold uppercase tracking-widest text-zinc-700 transition hover:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"><Users size={14} /> Applicants</button>
                     <button
                       type="button"
                       onClick={() => handleDelete(opp._id)}
@@ -140,6 +169,7 @@ export default function ManageOpportunities() {
           </div>
         )}
       </div>
+      {selectedApplicant && <div className="fixed inset-0 z-[55] flex items-center justify-center bg-zinc-950/70 p-4"><div className="grid max-h-[90vh] w-full max-w-5xl gap-6 overflow-y-auto border border-zinc-700 bg-white p-6 dark:bg-zinc-900"><div className="flex items-center justify-between"><div><p className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Applicant review / {applicants.length} total</p><h2 className="text-xl font-black uppercase">{selectedApplicant.candidateSnapshot?.fullName || selectedApplicant.candidateSnapshot?.email}</h2></div><button type="button" onClick={() => setSelectedApplicant(null)} aria-label="Close applicant review"><X /></button></div><div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]"><div className="space-y-4"><div className="border border-zinc-200 p-4 dark:border-zinc-800"><h3 className="mb-2 text-xs font-bold uppercase tracking-widest">Candidate profile snapshot</h3><p className="text-sm">{selectedApplicant.candidateSnapshot?.email}</p><p className="mt-1 text-sm text-zinc-500">{selectedApplicant.candidateSnapshot?.education} / {selectedApplicant.candidateSnapshot?.degreeField} / {selectedApplicant.candidateSnapshot?.semester}</p><p className="mt-2 text-sm">Skills: {(selectedApplicant.candidateSnapshot?.skills || []).join(', ') || 'None listed'}</p><p className="mt-2 text-xs text-zinc-500">Experience: {selectedApplicant.candidateSnapshot?.experience || 'Not provided'}</p><p className="mt-2 text-xs text-zinc-500">CV: {selectedApplicant.candidateSnapshot?.cvFileName || 'Not uploaded'}</p></div><div className="border border-zinc-200 p-4 dark:border-zinc-800"><h3 className="mb-2 text-xs font-bold uppercase tracking-widest">Application evidence</h3><p className="text-sm">Applied {new Date(selectedApplicant.appliedAt).toLocaleString()}</p><p className="mt-2 text-sm">{selectedApplicant.analysis?.summary}</p><p className="mt-2 text-xs text-emerald-600">Matched: {(selectedApplicant.analysis?.matchedSkills || []).join(', ') || 'None'}</p><p className="mt-1 text-xs text-amber-600">Gaps: {(selectedApplicant.analysis?.skillGaps || []).join(', ') || 'None'}</p></div></div><div className="space-y-4"><div className="border border-zinc-200 p-4 dark:border-zinc-800"><p className="text-[10px] font-mono uppercase text-zinc-500">Fit score</p><strong className="text-4xl font-black">{selectedApplicant.analysis?.score}%</strong><p className="mt-2 text-xs font-bold uppercase text-zinc-500">Status: {selectedApplicant.status}</p><div className="mt-4 grid grid-cols-2 gap-2"><button type="button" onClick={() => updateStatus('interview')} className="bg-emerald-600 px-3 py-2 text-xs font-bold uppercase text-white">Call for interview</button><button type="button" onClick={() => updateStatus('rejected')} className="border border-zinc-300 px-3 py-2 text-xs font-bold uppercase">Reject</button></div></div><form onSubmit={sendMessage} className="border border-zinc-200 p-4 dark:border-zinc-800"><h3 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest"><Send size={14} /> Send in-app message</h3><input value={message.subject} onChange={(event) => setMessage({ ...message, subject: event.target.value })} className="mb-2 w-full border border-zinc-300 bg-transparent p-2 text-xs dark:border-zinc-700" placeholder="Subject" /><textarea required value={message.body} onChange={(event) => setMessage({ ...message, body: event.target.value })} className="mb-2 h-24 w-full border border-zinc-300 bg-transparent p-2 text-xs dark:border-zinc-700" placeholder="Write a custom message or paste a template..." /><button className="w-full bg-zinc-900 px-3 py-2 text-xs font-bold uppercase text-white dark:bg-zinc-100 dark:text-zinc-950">Send message</button></form></div></div></div></div>}
     </div>
   );
 }

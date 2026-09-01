@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "supersecretjwtkey_change_in_production_123456789"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
+    GEMINI_API_KEY: str = "AIzaSyA5_UCz3jLnit13Lbgg7BgvOzsVKhMiQK0"
+    GEMINI_MODEL: str = "gemini-3.1-flash-lite-preview"
     
     class Config:
         env_file = ".env"
