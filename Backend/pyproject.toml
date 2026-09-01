@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "oprella-backend"
+version = "0.1.0"
+dependencies = [
+    "fastapi[standard]",
+    "uvicorn",
+    "motor",
+    "pydantic",
+    "pydantic-settings",
+    "python-dotenv",
+    "pymongo[srv]",
+    "passlib[bcrypt]",
+    "pyjwt",
+    "bcrypt==4.0.1",
+    "httpx"
+]
+
+[tool.fastapi]
+entrypoint = "app.main:app"
