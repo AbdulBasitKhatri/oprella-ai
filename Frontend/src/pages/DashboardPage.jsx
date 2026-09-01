@@ -26,6 +26,7 @@ export default function StudentDashboard() {
   const [opportunities, setOpportunities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [savedIds, setSavedIds] = useState([]);
+  const [applications, setApplications] = useState([]);
   const [selectedOpportunity, setSelectedOpportunity] = useState(null);
 
   useEffect(() => {
@@ -91,6 +92,12 @@ export default function StudentDashboard() {
 
     fetchSavedOpportunities();
     fetchOpportunities();
+    if (token) {
+      fetch('http://localhost:8000/applications/my', { headers: { Authorization: `Bearer ${token}` } })
+        .then((response) => response.ok ? response.json() : [])
+        .then((data) => setApplications(Array.isArray(data) ? data : []))
+        .catch(() => setApplications([]));
+    }
   }, [token]);
 
   const toggleSave = async (id) => {
@@ -251,6 +258,7 @@ export default function StudentDashboard() {
               <div className="space-y-4">
                 {filteredOpportunities.map((opp) => {
                   const isSaved = savedIds.includes(opp.id);
+                  const application = applications.find((item) => item.opportunityId === String(opp.id));
                   return (
                     <div
                       key={opp.id}
@@ -274,10 +282,6 @@ export default function StudentDashboard() {
                           </p>
                         </div>
 
-                        <div className="bg-zinc-950 text-white dark:bg-zinc-100 dark:text-zinc-950 border border-zinc-800 dark:border-zinc-200 px-3.5 py-1.5 rounded-none text-center self-start">
-                          <span className="text-lg font-black block leading-none font-mono">{opp.match_score}%</span>
-                          <span className="text-[8px] font-mono font-bold uppercase tracking-widest opacity-80">Match</span>
-                        </div>
                       </div>
 
                       {/* Action Bar */}
@@ -304,7 +308,7 @@ export default function StudentDashboard() {
                             type="button"
                             onClick={() => setSelectedOpportunity(opp)}
                             className="px-4 py-2 bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-950 font-extrabold text-[11px] uppercase tracking-widest flex items-center gap-1.5 hover:bg-zinc-800 dark:hover:bg-white transition rounded-none"
-                          >Apply Now <ExternalLink size={13} /></button>
+                          >{application ? 'Already applied, see details' : 'Apply Now'} <ExternalLink size={13} /></button>
                         </div>
                       </div>
                     </div>
@@ -331,7 +335,7 @@ export default function StudentDashboard() {
 
         </div>
       </main>
-      {selectedOpportunity && <ApplicationPreviewModal opportunity={selectedOpportunity} token={token} onClose={() => setSelectedOpportunity(null)} onApplied={() => setSelectedOpportunity(null)} />}
+      {selectedOpportunity && <ApplicationPreviewModal opportunity={selectedOpportunity} token={token} onClose={() => setSelectedOpportunity(null)} onApplied={(application) => { setApplications((current) => [...current, application]); setSelectedOpportunity(null); }} />}
     </div>
   );
 }

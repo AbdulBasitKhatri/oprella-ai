@@ -284,7 +284,7 @@ async def get_recruiter_dashboard_data(db, user: dict) -> RecruiterDashboardResp
             "title": item.get("title") or "Role Title",
             "type": item.get("type") or item.get("category") or "Internship",
             "applicants": int(item.get("applicants") or 0),
-            "status": (item.get("status") or "Active").title(),
+            "status": "Active" if str(item.get("status") or "active").lower() == "draft" else str(item.get("status") or "Active").title(),
         })
 
     live_listings = len(recent_postings)

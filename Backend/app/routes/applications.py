@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 from app.config import settings
 from app.database import get_database
-from app.routes.auth import get_authenticated_user_id, get_student_profile_data, is_recruiter_role
+from app.routes.auth import get_authenticated_user_id, get_student_profile_data, get_recruiter_profile_data, is_recruiter_role
 
 router = APIRouter(tags=["Applications"])
 
@@ -98,7 +98,12 @@ async def application_preview(opportunity_id: str, authorization: Optional[str] 
         raise HTTPException(status_code=404, detail="Opportunity not found")
     profile = await get_student_profile_data(user)
     existing = await db["applications"].find_one({"opportunityId": opportunity["_id"], "candidateId": user_id})
-    return {"opportunity": serialize(opportunity), "profile": profile.model_dump(exclude={"cvFileName"}), "analysis": await analyze_with_gemini(opportunity, profile.model_dump()), "alreadyApplied": bool(existing)}
+    cached = await db["application_analysis_cache"].find_one({"opportunityId": opportunity["_id"], "candidateId": user_id})
+    analysis = existing.get("analysis") if existing else (cached.get("analysis") if cached else None)
+    if analysis is None:
+        analysis = await analyze_with_gemini(opportunity, profile.model_dump())
+        await db["application_analysis_cache"].update_one({"opportunityId": opportunity["_id"], "candidateId": user_id}, {"$set": {"analysis": analysis, "updatedAt": now_iso()}}, upsert=True)
+    return {"opportunity": serialize(opportunity), "profile": profile.model_dump(), "analysis": analysis, "alreadyApplied": bool(existing)}
 
 
 @router.post("/applications/{opportunity_id}", status_code=status.HTTP_201_CREATED)
@@ -110,8 +115,14 @@ async def apply(opportunity_id: str, authorization: Optional[str] = Header(None)
     if await db["applications"].find_one({"opportunityId": opportunity["_id"], "candidateId": user_id}):
         raise HTTPException(status_code=409, detail="You already applied to this opportunity")
     profile = await get_student_profile_data(user)
-    analysis = await analyze_with_gemini(opportunity, profile.model_dump())
-    application = {"opportunityId": opportunity["_id"], "candidateId": user_id, "recruiterId": opportunity.get("createdBy"), "status": "submitted", "appliedAt": now_iso(), "opportunitySnapshot": serialize(opportunity), "candidateSnapshot": profile_snapshot(user, profile), "analysis": analysis}
+    cached = await db["application_analysis_cache"].find_one({"opportunityId": opportunity["_id"], "candidateId": user_id})
+    analysis = cached.get("analysis") if cached else None
+    if analysis is None:
+        analysis = await analyze_with_gemini(opportunity, profile.model_dump())
+    await db["application_analysis_cache"].delete_one({"opportunityId": opportunity["_id"], "candidateId": user_id})
+    recruiter = await db["users"].find_one({"_id": object_id(str(opportunity.get("createdBy")))}) if opportunity.get("createdBy") else None
+    recruiter_profile = await get_recruiter_profile_data(recruiter) if recruiter else None
+    application = {"opportunityId": opportunity["_id"], "candidateId": user_id, "recruiterId": opportunity.get("createdBy"), "status": "submitted", "appliedAt": now_iso(), "opportunitySnapshot": serialize(opportunity), "candidateSnapshot": profile_snapshot(user, profile), "recruiterSnapshot": recruiter_profile.model_dump() if recruiter_profile else {}, "analysis": analysis}
     result = await db["applications"].insert_one(application)
     await db["opportunities"].update_one({"_id": opportunity["_id"]}, {"$inc": {"applicants": 1}})
     await db["notifications"].insert_one({"userId": opportunity.get("createdBy"), "type": "application", "title": "New application received", "body": f"{profile.fullName or profile.email} applied for {opportunity.get('title')}", "read": False, "createdAt": now_iso(), "applicationId": str(result.inserted_id)})
@@ -139,8 +150,14 @@ async def update_application_status(application_id: str, payload: ApplicationSta
     if not application:
         raise HTTPException(status_code=404, detail="Application not found")
     await db["applications"].update_one({"_id": application["_id"]}, {"$set": {"status": payload.status, "updatedAt": now_iso()}})
-    if payload.status == "interview":
-        await db["notifications"].insert_one({"userId": application["candidateId"], "type": "interview", "title": "Interview invitation", "body": "The organization would like to interview you.", "read": False, "createdAt": now_iso(), "applicationId": str(application["_id"])})
+    if payload.status == "rejected":
+        organization = application.get("recruiterSnapshot", {}).get("companyName") or "the organization"
+        role = application.get("opportunitySnapshot", {}).get("title") or "the opportunity"
+        candidate = application.get("candidateSnapshot", {}).get("fullName") or "Candidate"
+        contact = application.get("recruiterSnapshot", {}).get("contactName") or organization
+        body = f"Dear {candidate},\n\nThank you for your interest in {organization} and for applying for the {role} position. After careful consideration, we will not be progressing your application to the next stage at this time.\n\nWe appreciate the time and effort you invested in your application and encourage you to continue developing your skills and pursuing opportunities that align with your goals. We wish you every success in your future endeavors.\n\nKind regards,\n{contact}\n{organization}"
+        await db["applications"].update_one({"_id": application["_id"]}, {"$set": {"decisionMessage": {"subject": f"Application update: {role}", "body": body}}})
+        await db["notifications"].insert_one({"userId": application["candidateId"], "type": "decision", "title": f"Application update: {role}", "body": body, "read": False, "createdAt": now_iso(), "applicationId": str(application["_id"])})
     return {"status": payload.status}
 
 
@@ -150,7 +167,9 @@ async def message_candidate(application_id: str, payload: MessageCreate, authori
     application = await db["applications"].find_one({"_id": object_id(application_id), "recruiterId": user_id})
     if not application:
         raise HTTPException(status_code=404, detail="Application not found")
-    await db["notifications"].insert_one({"userId": application["candidateId"], "type": "message", "title": payload.subject, "body": payload.body, "read": False, "createdAt": now_iso(), "applicationId": application_id})
+    sent_at = now_iso()
+    await db["applications"].update_one({"_id": application["_id"]}, {"$set": {"status": "accepted", "decisionMessage": payload.model_dump(), "updatedAt": sent_at}})
+    await db["notifications"].insert_one({"userId": application["candidateId"], "type": "decision", "title": payload.subject, "body": payload.body, "read": False, "createdAt": sent_at, "applicationId": application_id})
     return {"message": "Message sent"}
 
 
