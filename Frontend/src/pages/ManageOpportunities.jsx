@@ -12,11 +12,16 @@ export default function ManageOpportunities() {
   const [selectedApplicant, setSelectedApplicant] = useState(null);
   const [acceptingApplicant, setAcceptingApplicant] = useState(null);
   const [message, setMessage] = useState({ subject: '', body: '' });
+  const [organizationProfile, setOrganizationProfile] = useState(null);
   const [toast, setToast] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (!token) return;
+    fetch(API_ROUTES.auth.recruiterProfile, { headers: { Authorization: `Bearer ${token}` } })
+      .then((response) => response.ok ? response.json() : null)
+      .then(setOrganizationProfile)
+      .catch(() => setOrganizationProfile(null));
     fetch(API_ROUTES.opportunities.mine, { headers: { Authorization: `Bearer ${token}` } })
       .then((response) => response.json()).then(setOpportunities).catch(() => setError('Unable to load your postings.'));
   }, [token]);
@@ -34,16 +39,18 @@ export default function ManageOpportunities() {
     const response = await fetch(API_ROUTES.applications.status(selectedApplicant._id), { method: 'PATCH', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
     if (response.ok) {
       setApplicants((current) => current.map((item) => item._id === selectedApplicant._id ? { ...item, status } : item));
-      setSelectedApplicant((current) => ({ ...current, status }));
-      showToast(status === 'rejected' ? 'Application rejected successfully.' : 'Application updated successfully.');
+      setSelectedApplicant(null);
+      setApplicants([]);
+      showToast('Application rejected successfully.');
     }
   };
 
   const openAcceptance = () => {
     const candidate = selectedApplicant.candidateSnapshot?.fullName || 'Candidate';
-    const organization = selectedApplicant.recruiterSnapshot?.companyName || 'our organization';
+    const recruiter = organizationProfile || selectedApplicant.recruiterSnapshot || {};
+    const organization = recruiter.companyName || 'our organization';
     const role = selectedApplicant.opportunitySnapshot?.title || 'the role';
-    const contact = selectedApplicant.recruiterSnapshot?.contactName || organization;
+    const contact = recruiter.contactName || organization;
     setMessage({ subject: `Application update: ${role}`, body: `Dear ${candidate},\n\nThank you for your interest in ${organization} and for applying for the ${role} position. We are pleased to inform you that your application has been selected for the next stage.\n\nOur team will contact you shortly to confirm the interview date and time. Please reply with your availability and let us know if you need any accommodation.\n\nKind regards,\n${contact}\n${organization}` });
     setAcceptingApplicant(selectedApplicant); setSelectedApplicant(null);
   };
@@ -52,7 +59,8 @@ export default function ManageOpportunities() {
     event.preventDefault();
     const response = await fetch(API_ROUTES.applications.message(acceptingApplicant._id), { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(message) });
     if (response.ok) {
-      setApplicants((current) => current.map((item) => item._id === acceptingApplicant._id ? { ...item, status: 'accepted' } : item));
+      setApplicants([]);
+      setSelectedApplicant(null);
       setAcceptingApplicant(null);
       showToast('Candidate accepted and notified successfully.');
     }

@@ -18,6 +18,7 @@ import RDashboard from './pages/RDashboard';
 import PostOpportunity from './pages/PostOpportunity';
 import ManageOpportunities from './pages/ManageOpportunities';
 import OrganizationProfile from './pages/OrganizationProfile';
+import SavedOpportunities from './pages/SavedOpportunities';
 
 function OnboardingRoute({ children, requiredRole = 'student' }) {
   const { user, isAuthenticated, isOnboarded, loading } = useAuth();
@@ -66,7 +67,7 @@ export default function App() {
                   <Route path={FRONTEND_ROUTES.dashboard} element={<DashboardPage />} />
                   <Route path={FRONTEND_ROUTES.studentProfile} element={<StudentProfile />} />
                   <Route path={FRONTEND_ROUTES.tracker} element={<TrackerPage />} />
-                  <Route path={FRONTEND_ROUTES.admin} element={<AdminPage />} />
+                  <Route path={FRONTEND_ROUTES.savedOpportunities} element={<SavedOpportunities />} />
                 </Route>
 
                 <Route element={<RecruiterRoute />}>

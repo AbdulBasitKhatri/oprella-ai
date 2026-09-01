@@ -6,14 +6,15 @@ import { FRONTEND_ROUTES, isRecruiterRole } from '../config/appConfig';
 import { 
   LayoutDashboard, 
   BookmarkCheck, 
-  Shield, 
   User, 
   LogIn, 
   UserPlus, 
   Sparkles,
   Sun,
   Moon,
-  LogOut
+  LogOut,
+  Menu,
+  X
 } from 'lucide-react';
 import { Bell, Check } from 'lucide-react';
 import { API_ROUTES } from '../config/appConfig';
@@ -25,6 +26,7 @@ export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
   const [notifications, setNotifications] = React.useState([]);
   const [showNotifications, setShowNotifications] = React.useState(false);
+  const [mobileOpen, setMobileOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (!isAuthenticated) return;
@@ -44,8 +46,22 @@ export default function Navbar() {
 
   const handleLogout = () => {
     logout();
+    setMobileOpen(false);
     navigate(FRONTEND_ROUTES.login);
   };
+
+  const navigationItems = isRecruiterRole(user?.role)
+    ? [
+        { path: FRONTEND_ROUTES.rDashboard, label: 'Dashboard', icon: LayoutDashboard },
+        { path: FRONTEND_ROUTES.postOpportunity, label: 'Post Opportunity', icon: BookmarkCheck },
+        { path: FRONTEND_ROUTES.organizationProfile, label: 'Profile', icon: User },
+      ]
+    : [
+        { path: FRONTEND_ROUTES.dashboard, label: 'Feed', icon: LayoutDashboard },
+        { path: FRONTEND_ROUTES.studentProfile, label: 'Profile', icon: User },
+        { path: FRONTEND_ROUTES.tracker, label: 'Tracker', icon: BookmarkCheck },
+        { path: FRONTEND_ROUTES.savedOpportunities, label: 'Saved', icon: BookmarkCheck },
+      ];
 
   return (
     <nav className="fixed top-0 left-0 right-0 w-full bg-white/80 dark:bg-zinc-950/80 border-b border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 z-50 rounded-none shadow-[0_4px_30px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_30px_rgba(255,255,255,0.03)] backdrop-blur-xl transition-colors duration-200">
@@ -73,19 +89,7 @@ export default function Navbar() {
         {/* Navigation Tabs (Only visible when authenticated) */}
         {isAuthenticated && (
           <div className="hidden md:flex items-center gap-2">
-            {(isRecruiterRole(user?.role)
-              ? [
-                  { path: FRONTEND_ROUTES.rDashboard, label: 'Dashboard', icon: LayoutDashboard },
-                  { path: FRONTEND_ROUTES.postOpportunity, label: 'Post Opportunity', icon: BookmarkCheck },
-                  { path: FRONTEND_ROUTES.organizationProfile, label: 'Management', icon: Shield },
-                ]
-              : [
-                  { path: FRONTEND_ROUTES.dashboard, label: 'Feed', icon: LayoutDashboard },
-                  { path: FRONTEND_ROUTES.studentProfile, label: 'Profile', icon: User },
-                  { path: FRONTEND_ROUTES.tracker, label: 'Tracker', icon: BookmarkCheck },
-                  { path: FRONTEND_ROUTES.admin, label: 'Admin Panel', icon: Shield },
-                ]
-            ).map(({ path, label, icon: Icon }) => {
+            {navigationItems.map(({ path, label, icon: Icon }) => {
               const active = isActive(path);
               return (
                 <Link
@@ -110,6 +114,7 @@ export default function Navbar() {
 
         {/* Right Section */}
         <div className="flex items-center gap-3">
+          {isAuthenticated && <button type="button" onClick={() => setMobileOpen((value) => !value)} aria-label={mobileOpen ? 'Close navigation menu' : 'Open navigation menu'} className="flex h-9 w-9 items-center justify-center border border-zinc-300 bg-zinc-100 text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 md:hidden">{mobileOpen ? <X size={17} /> : <Menu size={17} />}</button>}
           
           {/* Global Theme Toggle Button */}
           <button
@@ -134,10 +139,10 @@ export default function Navbar() {
           {isAuthenticated ? (
             <div className="flex items-center gap-3">
               <div className="relative"><button type="button" onClick={() => setShowNotifications((value) => !value)} aria-label="Open notifications" className="relative flex h-9 w-9 items-center justify-center border border-zinc-300 bg-zinc-100 text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300"><Bell size={16} />{notifications.filter((item) => !item.read).length > 0 && <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center bg-amber-500 px-1 text-[9px] font-bold text-zinc-950">{notifications.filter((item) => !item.read).length}</span>}</button>{showNotifications && <div className="absolute right-0 top-11 w-80 border border-zinc-300 bg-white p-3 shadow-xl dark:border-zinc-700 dark:bg-zinc-900"><div className="mb-2 flex items-center justify-between"><span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Notifications</span><Check size={13} className="text-zinc-400" /></div>{notifications.length === 0 ? <p className="p-3 text-xs text-zinc-500">You are all caught up.</p> : notifications.map((notification) => <button type="button" key={notification._id} onClick={() => markRead(notification)} className={`mb-1 block w-full border-l-2 p-2 text-left ${notification.read ? 'border-zinc-300 opacity-60' : 'border-amber-500'}`}><p className="text-xs font-bold">{notification.title}</p><p className="mt-1 text-[11px] text-zinc-500">{notification.body}</p><p className="mt-1 text-[9px] font-mono text-zinc-400">{new Date(notification.createdAt).toLocaleString()}</p></button>)}</div>}</div>
-              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-zinc-100 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 text-xs font-mono text-zinc-700 dark:text-zinc-300">
+              <Link to={isRecruiterRole(user?.role) ? FRONTEND_ROUTES.organizationProfile : FRONTEND_ROUTES.studentProfile} className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-zinc-100 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 text-xs font-mono text-zinc-700 dark:text-zinc-300 hover:border-zinc-500">
                 <User size={14} className="text-zinc-500" />
                 <span>{user?.fullName || user?.full_name || user?.email || 'User'}</span>
-              </div>
+              </Link>
 
               <button
                 onClick={handleLogout}
@@ -175,6 +180,7 @@ export default function Navbar() {
         </div>
 
       </div>
+      {isAuthenticated && mobileOpen && <div className="border-t border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950 md:hidden"><div className="space-y-1">{navigationItems.map(({ path, label, icon: Icon }) => <Link key={path} to={path} onClick={() => setMobileOpen(false)} className={`flex items-center gap-3 border px-3 py-3 text-xs font-bold uppercase tracking-widest ${isActive(path) ? 'border-zinc-400 bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-900' : 'border-transparent text-zinc-500'}`}><Icon size={15} /> {label}</Link>)}<Link to={isRecruiterRole(user?.role) ? FRONTEND_ROUTES.organizationProfile : FRONTEND_ROUTES.studentProfile} onClick={() => setMobileOpen(false)} className="flex items-center gap-3 border border-transparent px-3 py-3 text-xs font-bold uppercase tracking-widest text-zinc-500"><User size={15} /> Account profile</Link></div></div>}
     </nav>
   );
 }

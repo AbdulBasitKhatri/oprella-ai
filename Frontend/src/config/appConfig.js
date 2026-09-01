@@ -15,6 +15,7 @@ export const FRONTEND_ROUTES = {
   dashboard: '/dashboard',
   studentProfile: '/student-profile',
   tracker: '/tracker',
+  savedOpportunities: '/saved-opportunities',
   admin: '/admin',
 };
 
@@ -53,6 +54,10 @@ export const API_ROUTES = {
     list: withApiBase('/opportunities/'),
     mine: withApiBase('/opportunities/my'),
     byId: (id) => withApiBase(`/opportunities/${id}`),
+  },
+  saved: {
+    list: withApiBase('/auth/student/saved-opportunities'),
+    remove: (id) => withApiBase(`/auth/student/saved-opportunities/${id}`),
   },
   applications: {
     preview: (id) => withApiBase(`/applications/preview/${id}`),
