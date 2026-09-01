@@ -48,6 +48,9 @@ export const API_ROUTES = {
     recruiterOnboarding: withApiBase('/auth/recruiter-onboarding'),
     recruiterDashboard: withApiBase('/auth/recruiter/dashboard'),
     recruiterProfile: withApiBase('/auth/recruiter/profile'),
+    changePassword: withApiBase('/auth/change-password'),
+    studentDeleteAccount: withApiBase('/auth/student/delete-account'),
+    recruiterDeleteAccount: withApiBase('/auth/recruiter/delete-account'),
   },
   opportunities: {
     create: withApiBase('/opportunities/'),

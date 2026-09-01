@@ -58,9 +58,9 @@ export default function Navbar() {
       ]
     : [
         { path: FRONTEND_ROUTES.dashboard, label: 'Feed', icon: LayoutDashboard },
-        { path: FRONTEND_ROUTES.studentProfile, label: 'Profile', icon: User },
         { path: FRONTEND_ROUTES.tracker, label: 'Tracker', icon: BookmarkCheck },
         { path: FRONTEND_ROUTES.savedOpportunities, label: 'Saved', icon: BookmarkCheck },
+        { path: FRONTEND_ROUTES.studentProfile, label: 'Profile', icon: User },
       ];
 
   return (
@@ -180,7 +180,7 @@ export default function Navbar() {
         </div>
 
       </div>
-      {isAuthenticated && mobileOpen && <div className="border-t border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950 md:hidden"><div className="space-y-1">{navigationItems.map(({ path, label, icon: Icon }) => <Link key={path} to={path} onClick={() => setMobileOpen(false)} className={`flex items-center gap-3 border px-3 py-3 text-xs font-bold uppercase tracking-widest ${isActive(path) ? 'border-zinc-400 bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-900' : 'border-transparent text-zinc-500'}`}><Icon size={15} /> {label}</Link>)}<Link to={isRecruiterRole(user?.role) ? FRONTEND_ROUTES.organizationProfile : FRONTEND_ROUTES.studentProfile} onClick={() => setMobileOpen(false)} className="flex items-center gap-3 border border-transparent px-3 py-3 text-xs font-bold uppercase tracking-widest text-zinc-500"><User size={15} /> Account profile</Link></div></div>}
+      {isAuthenticated && mobileOpen && <div className="border-t border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950 md:hidden"><div className="space-y-1">{navigationItems.map(({ path, label, icon: Icon }) => <Link key={path} to={path} onClick={() => setMobileOpen(false)} className={`flex items-center gap-3 border px-3 py-3 text-xs font-bold uppercase tracking-widest ${isActive(path) ? 'border-zinc-400 bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-900' : 'border-transparent text-zinc-500'}`}><Icon size={15} /> {label}</Link>)}</div></div>}
     </nav>
   );
 }

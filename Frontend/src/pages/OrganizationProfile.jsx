@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Building2, Globe, Mail, MapPin, PencilLine, Save, UserRound, BriefcaseBusiness, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { API_ROUTES } from '../config/appConfig';
+import AccountSecurity from '../components/AccountSecurity';
 
 const emptyProfile = {
   companyName: '',
@@ -28,7 +29,7 @@ const normalizeAdditionalNotes = (value) => {
 };
 
 export default function OrganizationProfile() {
-  const { user, token, updateUser } = useAuth();
+  const { user, token, updateUser, logout } = useAuth();
   const [formData, setFormData] = useState(emptyProfile);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
@@ -258,6 +259,7 @@ export default function OrganizationProfile() {
           </div>
         )}
 
+        <AccountSecurity token={token} onDeleted={{ endpoint: API_ROUTES.auth.recruiterDeleteAccount, complete: () => { logout(); window.location.href = '/login'; } }} />
         <div className="mt-6 flex items-center gap-2 text-xs font-mono text-zinc-500 dark:text-zinc-400">
           <PencilLine size={14} /> Edit organization details and keep your public profile current.
         </div>

@@ -29,6 +29,18 @@ class UserLogin(BaseModel):
     email: EmailStr
     password: str
 
+class PasswordChangeSchema(BaseModel):
+    currentPassword: str
+    newPassword: str = Field(..., min_length=6)
+    confirmNewPassword: str
+
+    @field_validator("confirmNewPassword")
+    @classmethod
+    def passwords_match(cls, value, values):
+        if "newPassword" in values.data and value != values.data["newPassword"]:
+            raise ValueError("New passwords do not match")
+        return value
+
 class UserResponse(BaseModel):
     id: str = Field(..., alias="_id")
     fullName: Optional[str] = None
@@ -649,6 +661,36 @@ async def delete_student_account(authorization: Optional[str] = Header(None)):
 
     await db["users"].delete_one({"_id": ObjectId(user_id)})
     return {"message": "Student account deleted successfully"}
+
+
+@router.delete("/recruiter/delete-account")
+async def delete_recruiter_account(authorization: Optional[str] = Header(None)):
+    user_id = await get_authenticated_user_id(authorization)
+    db = get_database()
+    user = await db["users"].find_one({"_id": ObjectId(user_id)})
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if not is_recruiter_role(user.get("role")):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account deletion is only available to recruiter accounts.")
+    await db["opportunities"].delete_many({"createdBy": user_id})
+    await db["applications"].delete_many({"recruiterId": user_id})
+    await db["users"].delete_one({"_id": ObjectId(user_id)})
+    return {"message": "Recruiter account deleted successfully"}
+
+
+@router.put("/change-password")
+async def change_password(payload: PasswordChangeSchema, authorization: Optional[str] = Header(None)):
+    user_id = await get_authenticated_user_id(authorization)
+    db = get_database()
+    user = await db["users"].find_one({"_id": ObjectId(user_id)})
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if not verify_password(payload.currentPassword, user.get("password", "")):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect.")
+    if payload.currentPassword == payload.newPassword:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New password must be different from the current password.")
+    await db["users"].update_one({"_id": ObjectId(user_id)}, {"$set": {"password": hash_password(payload.newPassword)}})
+    return {"message": "Password changed successfully"}
 
 
 @router.get("/recruiter/dashboard", response_model=RecruiterDashboardResponse)
