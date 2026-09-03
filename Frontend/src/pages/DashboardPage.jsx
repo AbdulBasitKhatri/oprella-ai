@@ -194,7 +194,7 @@ export default function StudentDashboard({ personalized = true }) {
               <span className="text-xs font-mono text-zinc-400">• Active Session</span>
             </div>
             <h1 className="text-2xl font-black uppercase tracking-wide text-zinc-900 dark:text-zinc-100">
-              Welcome back, {user?.name || user?.full_name || 'Student'}
+              Welcome back, {user?.fullName || user?.name || user?.full_name || 'Student'}
             </h1>
             <p className="text-xs font-mono text-zinc-500 dark:text-zinc-400 mt-1">
               {user?.email || 'Authenticated User'}
