@@ -6,13 +6,12 @@ import {
   ExternalLink, 
   Clock, 
   Building2, 
-  CheckCircle2, 
   Sparkles, 
   GraduationCap, 
   Briefcase
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { FRONTEND_ROUTES } from '../config/appConfig';
+import { API_ROUTES, FRONTEND_ROUTES } from '../config/appConfig';
 import { OPPORTUNITY_CATEGORIES, getCategoryLabel } from '../constants/categories';
 import ApplicationPreviewModal from '../components/ApplicationPreviewModal';
 
@@ -35,7 +34,7 @@ export default function StudentDashboard() {
       }
 
       try {
-        const response = await fetch('http://localhost:8000/auth/student/saved-opportunities', {
+        const response = await fetch(API_ROUTES.saved.list, {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -54,7 +53,7 @@ export default function StudentDashboard() {
     const fetchOpportunities = async () => {
       setLoading(true);
       try {
-        const response = await fetch('http://localhost:8000/opportunities', {
+        const response = await fetch(API_ROUTES.opportunities.list, {
           headers: {
             'Authorization': token ? `Bearer ${token}` : '',
             'Content-Type': 'application/json'
@@ -91,7 +90,7 @@ export default function StudentDashboard() {
     fetchSavedOpportunities();
     fetchOpportunities();
     if (token) {
-      fetch('http://localhost:8000/applications/my', { headers: { Authorization: `Bearer ${token}` } })
+      fetch(API_ROUTES.applications.mine, { headers: { Authorization: `Bearer ${token}` } })
         .then((response) => response.ok ? response.json() : [])
         .then((data) => setApplications(Array.isArray(data) ? data : []))
         .catch(() => setApplications([]));
@@ -104,9 +103,7 @@ export default function StudentDashboard() {
     const isSaved = savedIds.includes(String(id));
 
     try {
-      const endpoint = isSaved
-        ? `http://localhost:8000/auth/student/saved-opportunities/${id}`
-        : `http://localhost:8000/auth/student/saved-opportunities/${id}`;
+      const endpoint = API_ROUTES.saved.remove(id);
 
       const response = await fetch(endpoint, {
         method: isSaved ? 'DELETE' : 'POST',

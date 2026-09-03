@@ -38,7 +38,7 @@ export default function StudentProfile() {
         setLoading(true);
         setError('');
 
-        const response = await fetch('http://localhost:8000/auth/student/profile', {
+        const response = await fetch(API_ROUTES.auth.studentProfile, {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -112,7 +112,7 @@ export default function StudentProfile() {
         formDataPayload.append('cv', cvFile);
       }
 
-      const response = await fetch('http://localhost:8000/auth/student/profile', {
+      const response = await fetch(API_ROUTES.auth.studentProfile, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
