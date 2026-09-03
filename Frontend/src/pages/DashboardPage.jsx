@@ -6,7 +6,6 @@ import {
   ExternalLink, 
   Clock, 
   Building2, 
-  Sparkles, 
   GraduationCap, 
   Briefcase
 } from 'lucide-react';
@@ -164,8 +163,8 @@ export default function StudentDashboard() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="bg-white dark:bg-zinc-900/70 border border-zinc-200 dark:border-zinc-800 p-5 rounded-none shadow-sm">
+        <div className="grid grid-cols-1 gap-4 border-y border-zinc-200 py-5 dark:border-zinc-800 sm:grid-cols-2">
+          <div className="border-l-2 border-zinc-900 pl-4 dark:border-zinc-100">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Available Feed</span>
               <Briefcase size={16} className="text-zinc-400" />
@@ -174,7 +173,7 @@ export default function StudentDashboard() {
             <span className="text-[10px] font-mono text-zinc-400 mt-1 block">Active opportunities</span>
           </div>
 
-          <div className="bg-white dark:bg-zinc-900/70 border border-zinc-200 dark:border-zinc-800 p-5 rounded-none shadow-sm">
+          <div className="border-l-2 border-zinc-300 pl-4 dark:border-zinc-700">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Saved Opportunities</span>
               <Bookmark size={16} className="text-zinc-400" />
@@ -186,12 +185,15 @@ export default function StudentDashboard() {
         </div>
 
         {/* Main Content Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          
-          <div className="lg:col-span-3 space-y-6">
+        <section className="space-y-5">
+          <div className="flex flex-col gap-1 border-b border-zinc-200 pb-4 dark:border-zinc-800">
+            <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-zinc-500">Discover</span>
+            <h2 className="text-xl font-black uppercase tracking-wide">Opportunity feed</h2>
+            <p className="text-xs text-zinc-500">Search and filter active opportunities matched to your goals.</p>
+          </div>
             
             {/* Search and Category Filter Strip */}
-            <div className="bg-white dark:bg-zinc-900/70 border border-zinc-200 dark:border-zinc-800 p-4 space-y-4 shadow-sm">
+            <div className="space-y-4 border-b border-zinc-200 pb-5 dark:border-zinc-800">
               <div className="relative">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" size={16} />
                 <input
@@ -204,7 +206,7 @@ export default function StudentDashboard() {
               </div>
 
               {/* Horizontal Scrollable Category Filter */}
-              <div className="pt-2 border-t border-zinc-200 dark:border-zinc-800">
+              <div className="pt-2">
                 <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-zinc-300 dark:scrollbar-thumb-zinc-800">
                   {OPPORTUNITY_CATEGORIES.map((cat) => (
                     <button
@@ -233,14 +235,14 @@ export default function StudentDashboard() {
                 No opportunities found matching category "{getCategoryLabel(selectedType)}".
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="grid gap-4 xl:grid-cols-2">
                 {filteredOpportunities.map((opp) => {
                   const isSaved = savedIds.includes(opp.id);
                   const application = applications.find((item) => item.opportunityId === String(opp.id));
                   return (
-                    <div
+                    <article
                       key={opp.id}
-                      className="bg-white dark:bg-zinc-900/70 border border-zinc-200 dark:border-zinc-800 p-6 shadow-sm hover:border-zinc-400 dark:hover:border-zinc-700 transition relative rounded-none"
+                      className="border border-zinc-200 bg-white p-5 transition hover:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-900/70 dark:hover:border-zinc-700"
                     >
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
                         <div>
@@ -289,29 +291,12 @@ export default function StudentDashboard() {
                           >{application ? 'Already applied, see details' : 'Apply Now'} <ExternalLink size={13} /></button>
                         </div>
                       </div>
-                    </div>
+                    </article>
                   );
                 })}
               </div>
             )}
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            <div className="bg-white dark:bg-zinc-900/70 border border-zinc-200 dark:border-zinc-800 p-5 rounded-none shadow-sm">
-              <div className="flex items-center gap-2 mb-3">
-                <Sparkles size={14} className="text-zinc-900 dark:text-zinc-100" />
-                <h3 className="text-xs font-mono uppercase tracking-wider font-bold text-zinc-900 dark:text-zinc-100">
-                  Supported Categories
-                </h3>
-              </div>
-              <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed mb-3">
-                Oprella AI aggregates 14 primary tracks ranging from internships and scholarships to research grants and bootcamps.
-              </p>
-            </div>
-          </div>
-
-        </div>
+        </section>
       </main>
       {selectedOpportunity && <ApplicationPreviewModal opportunity={selectedOpportunity} token={token} onClose={() => setSelectedOpportunity(null)} onApplied={(application) => { setApplications((current) => [...current, application]); setSelectedOpportunity(null); }} />}
     </div>

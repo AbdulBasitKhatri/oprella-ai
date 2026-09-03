@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import connect_to_mongo, close_mongo_connection
-from app.routes import auth, opportunities, applications
+from app.routes import admin, auth, opportunities, applications
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -33,6 +33,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(opportunities.router)
 app.include_router(applications.router)
+app.include_router(admin.router)
 
 @app.get("/")
 async def root():

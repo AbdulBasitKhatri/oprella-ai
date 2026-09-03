@@ -34,6 +34,8 @@ export default function StudentOnboarding() {
   });
 
   const [cvFile, setCvFile] = useState(null);
+  const [onboardingMode, setOnboardingMode] = useState('manual');
+  const [isImporting, setIsImporting] = useState(false);
   const [fileError, setFileError] = useState('');
   const [submitError, setSubmitError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -72,6 +74,38 @@ export default function StudentOnboarding() {
   const removeFile = () => {
     setCvFile(null);
     setFileError('');
+  };
+
+  const importFromCv = async () => {
+    if (!cvFile) {
+      setFileError('Choose a PDF or DOCX CV to import.');
+      return;
+    }
+    if (!['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(cvFile.type) && !/\.(pdf|docx)$/i.test(cvFile.name)) {
+      setFileError('AI import supports PDF and DOCX files.');
+      return;
+    }
+    setIsImporting(true);
+    setFileError('');
+    setSubmitError('');
+    try {
+      const payload = new FormData();
+      payload.append('cv', cvFile);
+      const activeToken = token || localStorage.getItem('token') || sessionStorage.getItem('token');
+      const response = await fetch(API_ROUTES.auth.studentCvImport, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${activeToken}` },
+        body: payload,
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.detail || 'Unable to import CV.');
+      setFormData((current) => ({ ...current, ...(result.fields || {}) }));
+      setOnboardingMode('manual');
+    } catch (err) {
+      setFileError(err.message);
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -152,8 +186,19 @@ export default function StudentOnboarding() {
             Tell us about you
           </h1>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 font-mono">
-            Complete all profile fields to unlock tailored opportunity matches. Select "No Education" or "None" where applicable.
+            Choose manual entry or let AI prepare a draft from your CV. Review and edit every field before saving.
           </p>
+        </div>
+
+        <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <button type="button" onClick={() => setOnboardingMode('manual')} className={`border p-4 text-left transition ${onboardingMode === 'manual' ? 'border-zinc-900 bg-zinc-100 dark:border-zinc-100 dark:bg-zinc-800' : 'border-zinc-200 dark:border-zinc-800'}`}>
+            <span className="block text-xs font-bold uppercase tracking-widest">Manual setup</span>
+            <span className="mt-1 block text-xs text-zinc-500">Enter your profile details yourself.</span>
+          </button>
+          <button type="button" onClick={() => setOnboardingMode('cv')} className={`border p-4 text-left transition ${onboardingMode === 'cv' ? 'border-zinc-900 bg-zinc-100 dark:border-zinc-100 dark:bg-zinc-800' : 'border-zinc-200 dark:border-zinc-800'}`}>
+            <span className="block text-xs font-bold uppercase tracking-widest">Import from CV</span>
+            <span className="mt-1 block text-xs text-zinc-500">AI drafts the fields for your review.</span>
+          </button>
         </div>
 
         {submitError && (
@@ -254,6 +299,10 @@ export default function StudentOnboarding() {
               </div>
             </div>
           </div>
+
+          {onboardingMode === 'cv' && <div className="border border-amber-300 bg-amber-50 p-4 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+            Upload a PDF or DOCX CV below, then choose <strong>Extract profile with AI</strong>. The fields will remain editable.
+          </div>}
 
           <div>
             <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-1.5">
@@ -372,6 +421,9 @@ export default function StudentOnboarding() {
             {fileError && (
               <p className="text-[11px] text-red-500 font-mono mt-1">{fileError}</p>
             )}
+            {onboardingMode === 'cv' && cvFile && <button type="button" onClick={importFromCv} disabled={isImporting} className="mt-3 inline-flex items-center gap-2 border border-zinc-400 px-4 py-2 text-xs font-bold uppercase tracking-wider disabled:opacity-50">
+              <Sparkles size={14} /> {isImporting ? 'Extracting profile...' : 'Extract profile with AI'}
+            </button>}
           </div>
 
           <button

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { LogIn, KeyRound, Mail, ArrowRight, Sparkles, ShieldCheck, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { API_ROUTES, FRONTEND_ROUTES, isRecruiterRole } from '../config/appConfig';
+import PasswordInput from '../components/PasswordInput';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -133,18 +134,14 @@ export default function LoginPage() {
 
           {/* Password Field */}
           <div>
-            <div className="flex items-center justify-between mb-1.5">
+            <div className="mb-1.5">
               <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
                 Password
               </label>
-              <a href="#forgot" className="text-[10px] font-mono text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 transition-colors uppercase">
-                Forgot?
-              </a>
             </div>
             <div className="relative">
               <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" size={16} />
-              <input
-                type="password"
+              <PasswordInput
                 required
                 disabled={loading}
                 value={formData.password}

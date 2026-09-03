@@ -16,7 +16,9 @@ dependencies = [
     "passlib[bcrypt]",
     "pyjwt",
     "bcrypt==4.0.1",
-    "httpx"
+    "httpx",
+    "pypdf",
+    "python-docx"
 ]
 
 [tool.fastapi]

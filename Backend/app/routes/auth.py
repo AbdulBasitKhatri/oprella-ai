@@ -5,6 +5,9 @@ from fastapi import APIRouter, HTTPException, status, Header, UploadFile, File, 
 from pydantic import BaseModel, EmailStr, Field, ValidationError, field_validator
 from bson import ObjectId
 import jwt
+import httpx
+from pypdf import PdfReader
+from docx import Document
 
 from app.database import get_database
 from app.auth_utils import hash_password, verify_password, create_access_token
@@ -242,6 +245,51 @@ async def process_cv_file(cv: Optional[UploadFile]) -> Optional[dict]:
     }
 
 
+async def extract_cv_text(cv: UploadFile) -> str:
+    file_bytes = await cv.read()
+    if len(file_bytes) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail='CV file size exceeds the 5MB maximum limit.')
+    filename = (cv.filename or '').lower()
+    try:
+        if filename.endswith('.pdf'):
+            from io import BytesIO
+            reader = PdfReader(BytesIO(file_bytes))
+            return '\n'.join(page.extract_text() or '' for page in reader.pages)[:30000]
+        if filename.endswith('.docx'):
+            from io import BytesIO
+            document = Document(BytesIO(file_bytes))
+            return '\n'.join(paragraph.text for paragraph in document.paragraphs)[:30000]
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f'Unable to read CV content: {exc}')
+    raise HTTPException(status_code=400, detail='AI import supports PDF and DOCX files. Please use manual entry for DOC files.')
+
+
+async def parse_cv_with_ai(text: str) -> dict:
+    empty = {
+        'education': '', 'degreeField': '', 'semester': '', 'skills': '',
+        'interests': '', 'location': '', 'experience': '', 'careerGoals': '',
+    }
+    if not text.strip() or not settings.GEMINI_API_KEY:
+        return empty
+    prompt = ('Extract a student profile from this CV. Return JSON only with exactly these string keys: '
+        'education, degreeField, semester, skills, interests, location, experience, careerGoals. '
+        'Use comma-separated skills and interests. Use "Not specified" when the CV does not provide a value. '
+        'Keep experience and careerGoals concise. CV TEXT:\n' + text)
+    url = f'https://generativelanguage.googleapis.com/v1beta/models/{settings.GEMINI_MODEL}:generateContent'
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            response = await client.post(url, params={'key': settings.GEMINI_API_KEY}, json={
+                'contents': [{'parts': [{'text': prompt}]}],
+                'generationConfig': {'responseMimeType': 'application/json'},
+            })
+            response.raise_for_status()
+            raw = response.json()['candidates'][0]['content']['parts'][0]['text']
+            parsed = json.loads(raw)
+            return {key: str(parsed.get(key) or 'Not specified') for key in empty}
+    except Exception:
+        return empty
+
+
 def get_student_onboarding_details(user: dict) -> dict:
     if user.get("student_onboarding_details") is not None:
         return user.get("student_onboarding_details") or {}
@@ -444,6 +492,24 @@ async def complete_student_onboarding(
         "is_onboarded": True,
         "role": user.get("role") or "Student / Researcher",
     }
+
+
+@router.post('/student-onboarding/import-cv')
+async def import_student_cv(cv: UploadFile = File(...), authorization: Optional[str] = Header(None)):
+    user_id = await get_authenticated_user_id(authorization)
+    db = get_database()
+    user = await db['users'].find_one({'_id': ObjectId(user_id)})
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='User not found')
+    if is_recruiter_role(user.get('role')):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='This endpoint is for student accounts only.')
+    filename = (cv.filename or '').lower()
+    if not filename.endswith(('.pdf', '.docx')):
+        raise HTTPException(status_code=400, detail='AI import supports PDF and DOCX files.')
+    if cv.size and cv.size > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail='CV file size exceeds the 5MB maximum limit.')
+    text = await extract_cv_text(cv)
+    return {'fields': await parse_cv_with_ai(text)}
 
 
 @router.post("/recruiter-onboarding", status_code=status.HTTP_200_OK)

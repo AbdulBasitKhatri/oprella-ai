@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { UserPlus, User, Mail, KeyRound, Code, ArrowRight, Sparkles, ShieldCheck, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { API_ROUTES, FRONTEND_ROUTES, isRecruiterRole } from '../config/appConfig';
+import PasswordInput from '../components/PasswordInput';
 
 export default function SignupPage() {
   const navigate = useNavigate();
@@ -174,8 +175,7 @@ export default function SignupPage() {
               </label>
               <div className="relative">
                 <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" size={16} />
-                <input
-                  type="password"
+                <PasswordInput
                   required
                   disabled={loading}
                   value={formData.password}
@@ -193,8 +193,7 @@ export default function SignupPage() {
               </label>
               <div className="relative">
                 <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" size={16} />
-                <input
-                  type="password"
+                <PasswordInput
                   required
                   disabled={loading}
                   value={formData.confirmPassword}

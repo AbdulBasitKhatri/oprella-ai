@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
     GEMINI_API_KEY: str = "AIzaSyA5_UCz3jLnit13Lbgg7BgvOzsVKhMiQK0"
     GEMINI_MODEL: str = "gemini-3.1-flash-lite-preview"
+    ADMIN_SEED_PASSWORD: str = "@dmin"
     
     class Config:
         env_file = ".env"

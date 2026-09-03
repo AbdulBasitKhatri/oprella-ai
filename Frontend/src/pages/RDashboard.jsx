@@ -5,13 +5,9 @@ import {
   BriefcaseBusiness,
   Plus,
   Users,
-  TrendingUp,
   ArrowRight,
   Sparkles,
   CheckCircle2,
-  Bell,
-  CalendarClock,
-  UserCircle2,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { FRONTEND_ROUTES, API_ROUTES } from '../config/appConfig';
@@ -95,7 +91,12 @@ export default function RDashboard() {
           </div>
         )}
 
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="mb-10">
+          <div className="mb-4 border-b border-zinc-200 pb-3 dark:border-zinc-800">
+            <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-zinc-500">Overview</span>
+            <h2 className="mt-1 text-xl font-black uppercase tracking-wide">Recruiting activity</h2>
+          </div>
+          <div className="grid gap-4 border-y border-zinc-200 py-5 dark:border-zinc-800 sm:grid-cols-2">
           {loading ? (
             Array.from({ length: 4 }).map((_, index) => (
               <div key={index} className="h-24 animate-pulse border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900" />
@@ -104,10 +105,8 @@ export default function RDashboard() {
             [
               { label: 'Live listings', value: dashboard?.liveListings ?? 0, icon: BriefcaseBusiness },
               { label: 'Applicants', value: dashboard?.applicants ?? 0, icon: Users },
-              { label: 'Shortlist rate', value: dashboard?.shortlistRate ?? '0%', icon: TrendingUp },
-              { label: 'Open tasks', value: dashboard?.openTasks ?? 0, icon: Bell },
             ].map(({ label, value, icon: Icon }) => (
-              <div key={label} className="border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+              <div key={label} className="border-l-2 border-zinc-300 pl-4 dark:border-zinc-700">
                 <div className="mb-2 flex items-center justify-between">
                   <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-zinc-500">{label}</span>
                   <Icon size={16} className="text-zinc-400" />
@@ -116,22 +115,23 @@ export default function RDashboard() {
               </div>
             ))
           )}
-        </div>
+          </div>
+        </section>
 
-        <div className="grid gap-8 lg:grid-cols-[1.7fr_0.9fr]">
+        <div className="grid gap-10 lg:grid-cols-[1.7fr_0.9fr]">
           <div className="space-y-6">
-            <div className="border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-              <div className="mb-4 flex items-center justify-between">
+            <section>
+              <div className="mb-4 flex items-end justify-between border-b border-zinc-200 pb-3 dark:border-zinc-800">
                 <div className="flex items-center gap-2">
                   <Sparkles size={15} className="text-zinc-700 dark:text-zinc-300" />
-                  <h2 className="text-xs font-mono uppercase tracking-[0.2em] text-zinc-700 dark:text-zinc-300">Recent postings</h2>
+                  <div><span className="block text-[10px] font-mono uppercase tracking-[0.25em] text-zinc-500">Pipeline</span><h2 className="mt-1 text-xl font-black uppercase tracking-wide">Recent postings</h2></div>
                 </div>
                 <Link to={FRONTEND_ROUTES.manageOpportunities} className="flex items-center gap-1 text-[10px] font-mono uppercase tracking-[0.18em] text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100">
                   Manage all <ArrowRight size={12} />
                 </Link>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {(dashboard?.recentPostings || []).length === 0 ? (
                   <div className="border border-zinc-200 bg-zinc-50 p-4 text-xs font-mono text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950/70 dark:text-zinc-400">
                     No active opportunities yet.
@@ -161,11 +161,11 @@ export default function RDashboard() {
                   ))
                 )}
               </div>
-            </div>
+            </section>
           </div>
 
           <aside className="space-y-6">
-            <div className="border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+            <section className="border-l-2 border-zinc-300 pl-5 dark:border-zinc-700">
               <div className="mb-3 flex items-center gap-2">
                 <Building2 size={15} className="text-zinc-700 dark:text-zinc-300" />
                 <h3 className="text-xs font-mono uppercase tracking-[0.2em] text-zinc-700 dark:text-zinc-300">Organization summary</h3>
@@ -185,25 +185,7 @@ export default function RDashboard() {
                   <span className="font-bold text-zinc-900 dark:text-zinc-100">{dashboard?.location || 'Not set'}</span>
                 </div>
               </div>
-            </div>
-
-            <div className="border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-              <div className="mb-3 flex items-center gap-2">
-                <CalendarClock size={15} className="text-zinc-700 dark:text-zinc-300" />
-                <h3 className="text-xs font-mono uppercase tracking-[0.2em] text-zinc-700 dark:text-zinc-300">Quick actions</h3>
-              </div>
-
-              <div className="space-y-2">
-                <Link to={FRONTEND_ROUTES.postOpportunity} className="flex w-full items-center justify-between border border-zinc-200 px-3 py-2 text-xs font-bold uppercase tracking-widest text-zinc-700 transition hover:border-zinc-400 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-700">
-                  <span>Post new role</span>
-                  <ArrowRight size={14} />
-                </Link>
-                <Link to={FRONTEND_ROUTES.organizationProfile} className="flex w-full items-center justify-between border border-zinc-200 px-3 py-2 text-xs font-bold uppercase tracking-widest text-zinc-700 transition hover:border-zinc-400 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-700">
-                  <span>Organization profile</span>
-                  <UserCircle2 size={14} />
-                </Link>
-              </div>
-            </div>
+            </section>
           </aside>
         </div>
       </main>
