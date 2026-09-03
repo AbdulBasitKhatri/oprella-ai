@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
+import Footer from './components/Footer';
 import { ProtectedRoute, PublicRoute, StudentRoute, RecruiterRoute } from './components/routes/AuthRoutes';
 import { FRONTEND_ROUTES, isRecruiterRole } from './config/appConfig';
 import LandingPage from './pages/LandingPage';
@@ -98,6 +99,7 @@ export default function App() {
                 <Route path="*" element={<Navigate to={FRONTEND_ROUTES.home} replace />} />
               </Routes>
             </main>
+            <Footer />
           </div>
         </Router>
       </AuthProvider>

@@ -27,7 +27,7 @@ export default function LandingPage() {
           
           {/* Tagline Badge */}
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-zinc-200/60 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 text-zinc-800 dark:text-zinc-200 text-xs font-mono uppercase tracking-widest mb-6 rounded-none">
-            <Sparkles size={14} className="text-zinc-900 dark:text-zinc-100" /> Everything Under One Umbrella
+            <Sparkles size={14} className="text-zinc-900 dark:text-zinc-100" /> Every opportunity under on umbrella.
           </div>
           
           {/* Main Headline */}
@@ -203,10 +203,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-8 border-t border-zinc-200 dark:border-zinc-900 text-center text-xs font-mono text-zinc-500">
-        <p>© 2026 Oprella AI. Everything Under One Umbrella.</p>
-      </footer>
     </div>
   );
 }
