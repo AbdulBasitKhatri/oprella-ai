@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Search, 
-  Filter, 
   Bookmark, 
   ExternalLink, 
   Clock, 
@@ -10,8 +9,7 @@ import {
   CheckCircle2, 
   Sparkles, 
   GraduationCap, 
-  Briefcase, 
-  TrendingUp 
+  Briefcase
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { FRONTEND_ROUTES } from '../config/appConfig';
@@ -169,7 +167,7 @@ export default function StudentDashboard() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="bg-white dark:bg-zinc-900/70 border border-zinc-200 dark:border-zinc-800 p-5 rounded-none shadow-sm">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Available Feed</span>
@@ -188,23 +186,6 @@ export default function StudentDashboard() {
             <span className="text-[10px] font-mono text-zinc-400 mt-1 block">Bookmarked for later</span>
           </div>
 
-          <div className="bg-white dark:bg-zinc-900/70 border border-zinc-200 dark:border-zinc-800 p-5 rounded-none shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Avg. Profile Match</span>
-              <TrendingUp size={16} className="text-zinc-400" />
-            </div>
-            <div className="text-2xl font-black font-mono">88%</div>
-            <span className="text-[10px] font-mono text-zinc-400 mt-1 block">Based on matched skills</span>
-          </div>
-
-          <div className="bg-white dark:bg-zinc-900/70 border border-zinc-200 dark:border-zinc-800 p-5 rounded-none shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Categories</span>
-              <Filter size={16} className="text-zinc-400" />
-            </div>
-            <div className="text-2xl font-black font-mono">14</div>
-            <span className="text-[10px] font-mono text-zinc-400 mt-1 block">Total available tracks</span>
-          </div>
         </div>
 
         {/* Main Content Layout */}
