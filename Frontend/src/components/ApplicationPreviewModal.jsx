@@ -2,16 +2,29 @@ import React, { useEffect, useState } from 'react';
 import { AlertCircle, CheckCircle2, LoaderCircle, X } from 'lucide-react';
 import { API_ROUTES } from '../config/appConfig';
 
+const previewCache = new Map();
+
 export default function ApplicationPreviewModal({ opportunity, token, onClose, onApplied }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    const cacheKey = `${token}:${opportunity.id}`;
+    const cachedPreview = previewCache.get(cacheKey);
+    if (cachedPreview) {
+      setData(cachedPreview);
+      setError('');
+      return undefined;
+    }
+
+    setData(null);
+    setError('');
     fetch(API_ROUTES.applications.preview(opportunity.id), { headers: { Authorization: `Bearer ${token}` } })
       .then(async (response) => {
         const payload = await response.json();
         if (!response.ok) throw new Error(payload.detail || 'Unable to prepare application preview.');
+        previewCache.set(cacheKey, payload);
         setData(payload);
       })
       .catch((err) => setError(err.message));
@@ -23,6 +36,7 @@ export default function ApplicationPreviewModal({ opportunity, token, onClose, o
       const response = await fetch(API_ROUTES.applications.apply(opportunity.id), { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.detail || 'Unable to submit application.');
+      previewCache.delete(`${token}:${opportunity.id}`);
       onApplied(payload);
     } catch (err) { setError(err.message); } finally { setSaving(false); }
   };

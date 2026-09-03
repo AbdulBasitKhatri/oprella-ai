@@ -13,6 +13,7 @@ export const FRONTEND_ROUTES = {
   manageOpportunities: '/manage-opportunities',
   organizationProfile: '/organization-profile',
   dashboard: '/dashboard',
+  feed: '/feed',
   studentProfile: '/student-profile',
   tracker: '/tracker',
   savedOpportunities: '/saved-opportunities',
@@ -57,6 +58,9 @@ export const API_ROUTES = {
   opportunities: {
     create: withApiBase('/opportunities/'),
     list: withApiBase('/opportunities/'),
+    feed: withApiBase('/opportunities/feed'),
+    forYou: withApiBase('/opportunities/for-you'),
+    publicById: (id) => withApiBase(`/opportunities/public/${id}`),
     mine: withApiBase('/opportunities/my'),
     byId: (id) => withApiBase(`/opportunities/${id}`),
   },

@@ -23,7 +23,7 @@ export default function Footer() {
           <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Explore</h2>
           <nav className="mt-3 flex flex-col items-start gap-2 text-sm text-zinc-600 dark:text-zinc-400">
             <Link className="transition hover:text-zinc-950 dark:hover:text-white" to={FRONTEND_ROUTES.home}>Home</Link>
-            <Link className="transition hover:text-zinc-950 dark:hover:text-white" to={FRONTEND_ROUTES.dashboard}>Opportunities</Link>
+            <Link className="transition hover:text-zinc-950 dark:hover:text-white" to={FRONTEND_ROUTES.feed}>Opportunities</Link>
             <Link className="transition hover:text-zinc-950 dark:hover:text-white" to={FRONTEND_ROUTES.signup}>Create account</Link>
           </nav>
         </div>

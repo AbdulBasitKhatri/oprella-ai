@@ -1,6 +1,7 @@
 import json
 import secrets
 from pathlib import Path
+from bson import ObjectId
 from fastapi import APIRouter, HTTPException, Query, status
 
 from app.config import settings
@@ -90,3 +91,61 @@ async def seed_mock_opportunities(
             updated += 1
 
     return {"message": "Mock opportunities seeded successfully", "total": len(source_items), "inserted": inserted, "updated": updated}
+
+
+@router.delete("/mock-opportunities/{mock_id}")
+async def delete_mock_opportunity(
+    mock_id: str,
+    password: str = Query(..., min_length=1),
+):
+    if not secrets.compare_digest(password, settings.ADMIN_SEED_PASSWORD):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid seed password")
+
+    db = get_database()
+    mock_id_values = [mock_id]
+    if mock_id.isdigit():
+        mock_id_values.append(int(mock_id))
+
+    opportunity = await db["opportunities"].find_one(
+        {"seedSource": "mock_opportunities_1000", "mockId": {"$in": mock_id_values}},
+        {"_id": 1},
+    )
+    if not opportunity:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mock opportunity not found")
+
+    await db["opportunities"].delete_one({"_id": opportunity["_id"]})
+    opportunity_id = opportunity["_id"]
+    await db["users"].update_many(
+        {"savedOpportunities": {"$in": [str(opportunity_id), opportunity_id]}},
+        {"$pull": {"savedOpportunities": {"$in": [str(opportunity_id), opportunity_id]}}},
+    )
+
+    return {"message": "Mock opportunity deleted successfully", "mockId": mock_id}
+
+
+@router.delete("/mock-opportunities")
+async def delete_mock_opportunities(
+    count: str = Query("all", pattern=r"^(100|200|300|all)$"),
+    password: str = Query(..., min_length=1),
+):
+    if not secrets.compare_digest(password, settings.ADMIN_SEED_PASSWORD):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid seed password")
+
+    db = get_database()
+    mock_filter = {"seedSource": "mock_opportunities_1000"}
+    cursor = db["opportunities"].find(mock_filter, {"_id": 1}).sort("mockId", 1)
+    if count != "all":
+        cursor = cursor.limit(int(count))
+
+    opportunity_ids = [item["_id"] async for item in cursor]
+    if not opportunity_ids:
+        return {"message": "No mock opportunities found", "deleted": 0, "requested": count}
+
+    result = await db["opportunities"].delete_many({"_id": {"$in": opportunity_ids}})
+    saved_id_values = [value for opportunity_id in opportunity_ids for value in (str(opportunity_id), opportunity_id)]
+    await db["users"].update_many(
+        {"savedOpportunities": {"$in": saved_id_values}},
+        {"$pull": {"savedOpportunities": {"$in": saved_id_values}}},
+    )
+
+    return {"message": "Mock opportunities deleted successfully", "deleted": result.deleted_count, "requested": count}

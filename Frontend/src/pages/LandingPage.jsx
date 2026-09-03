@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { FRONTEND_ROUTES } from '../config/appConfig';
 import { 
   Sparkles, 
   Target, 
@@ -46,7 +47,7 @@ export default function LandingPage() {
           {/* Action CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Link
-              to="/dashboard"
+              to={FRONTEND_ROUTES.feed}
               className="w-full sm:w-auto px-8 py-3.5 bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-950 font-extrabold text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-zinc-800 dark:hover:bg-white transition-all duration-200 rounded-none shadow-md"
             >
               Explore Opportunities <ArrowRight size={15} />
@@ -195,7 +196,7 @@ export default function LandingPage() {
             Join Oprella AI to match with top internships, hackathons, and scholarships today.
           </p>
           <Link
-            to="/dashboard"
+            to={FRONTEND_ROUTES.feed}
             className="inline-flex items-center gap-2 px-8 py-4 bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-950 font-extrabold text-xs uppercase tracking-widest hover:bg-zinc-800 dark:hover:bg-white transition duration-200 rounded-none shadow-md"
           >
             Get Started Now <Zap size={15} />

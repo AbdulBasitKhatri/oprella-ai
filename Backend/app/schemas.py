@@ -113,3 +113,10 @@ class OpportunityResponse(OpportunityCreate):
 
     class Config:
         populate_by_name = True
+
+
+class OpportunityPage(BaseModel):
+    items: List[OpportunityResponse]
+    total: int
+    page: int
+    pageSize: int

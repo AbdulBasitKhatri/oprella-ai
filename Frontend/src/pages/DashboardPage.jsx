@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { 
   Search, 
   Bookmark, 
@@ -7,23 +7,49 @@ import {
   Clock, 
   Building2, 
   GraduationCap, 
-  Briefcase
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { API_ROUTES, FRONTEND_ROUTES } from '../config/appConfig';
 import { OPPORTUNITY_CATEGORIES, getCategoryLabel } from '../constants/categories';
 import ApplicationPreviewModal from '../components/ApplicationPreviewModal';
 
-export default function StudentDashboard() {
+export default function StudentDashboard({ personalized = true }) {
   const { user, token } = useAuth();
+  const [searchParams] = useSearchParams();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState('ALL');
   const [opportunities, setOpportunities] = useState([]);
+  const [page, setPage] = useState(1);
+  const [totalOpportunities, setTotalOpportunities] = useState(0);
   const [loading, setLoading] = useState(true);
   const [savedIds, setSavedIds] = useState([]);
   const [applications, setApplications] = useState([]);
   const [selectedOpportunity, setSelectedOpportunity] = useState(null);
+  const feedCache = useRef(new Map());
+
+  useEffect(() => {
+    const opportunityId = searchParams.get('opportunity');
+    if (personalized || !opportunityId) return undefined;
+
+    fetch(API_ROUTES.opportunities.publicById(opportunityId))
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || 'Opportunity not found');
+        setSelectedOpportunity({
+          ...data,
+          id: data._id || data.id,
+          title: data.title || 'Untitled opportunity',
+          organization: data.organization || 'Organization',
+          location: data.location || 'Remote',
+        });
+      })
+      .catch((err) => console.error('Failed to open notification opportunity:', err));
+
+    return undefined;
+  }, [personalized, searchParams]);
 
   useEffect(() => {
     const fetchSavedOpportunities = async () => {
@@ -49,10 +75,36 @@ export default function StudentDashboard() {
       }
     };
 
+    fetchSavedOpportunities();
+    if (token) {
+      fetch(API_ROUTES.applications.mine, { headers: { Authorization: `Bearer ${token}` } })
+        .then((response) => response.ok ? response.json() : [])
+        .then((data) => setApplications(Array.isArray(data) ? data : []))
+        .catch(() => setApplications([]));
+    } else {
+      setApplications([]);
+    }
+  }, [token]);
+
+  useEffect(() => {
     const fetchOpportunities = async () => {
       setLoading(true);
+      const cacheKey = `${personalized ? 'for-you' : 'feed'}:${token || 'public'}:${page}:${searchQuery.trim().toLowerCase()}:${selectedType}`;
+      const cached = feedCache.current.get(cacheKey);
+      if (cached) {
+        setOpportunities(cached.opportunities);
+        setTotalOpportunities(cached.total);
+        setLoading(false);
+        return;
+      }
+
       try {
-        const response = await fetch(API_ROUTES.opportunities.list, {
+        const params = new URLSearchParams({ page: String(page), page_size: '10' });
+        if (!personalized && searchQuery.trim()) params.set('q', searchQuery.trim());
+        if (selectedType !== 'ALL') params.set('category', selectedType);
+
+        const endpoint = personalized ? API_ROUTES.opportunities.forYou : API_ROUTES.opportunities.feed;
+        const response = await fetch(`${endpoint}?${params.toString()}`, {
           headers: {
             'Authorization': token ? `Bearer ${token}` : '',
             'Content-Type': 'application/json'
@@ -65,7 +117,7 @@ export default function StudentDashboard() {
         }
 
         const data = await response.json();
-        const normalized = (Array.isArray(data) ? data : []).map((opp) => ({
+        const normalized = (Array.isArray(data.items) ? data.items : []).map((opp) => ({
           ...opp,
           id: opp._id || opp.id,
           title: opp.title || 'Untitled opportunity',
@@ -77,7 +129,10 @@ export default function StudentDashboard() {
           apply_url: opp.applicationUrl || opp.apply_url || '#',
         }));
 
-        setOpportunities(normalized);
+          const total = Number(data.total) || 0;
+          feedCache.current.set(cacheKey, { opportunities: normalized, total });
+          setOpportunities(normalized);
+          setTotalOpportunities(total);
       } catch (err) {
         setOpportunities([]);
         console.error('Failed to load real opportunities:', err);
@@ -86,15 +141,12 @@ export default function StudentDashboard() {
       }
     };
 
-    fetchSavedOpportunities();
-    fetchOpportunities();
-    if (token) {
-      fetch(API_ROUTES.applications.mine, { headers: { Authorization: `Bearer ${token}` } })
-        .then((response) => response.ok ? response.json() : [])
-        .then((data) => setApplications(Array.isArray(data) ? data : []))
-        .catch(() => setApplications([]));
-    }
-  }, [token]);
+    const searchTimer = setTimeout(() => {
+      fetchOpportunities();
+    }, 250);
+
+    return () => clearTimeout(searchTimer);
+  }, [token, page, searchQuery, selectedType, personalized]);
 
   const toggleSave = async (id) => {
     if (!token) return;
@@ -124,12 +176,7 @@ export default function StudentDashboard() {
     }
   };
 
-  const filteredOpportunities = opportunities.filter(opp => {
-    const matchesType = selectedType === 'ALL' || opp.type === selectedType;
-    const matchesSearch = opp.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          opp.organization.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesType && matchesSearch;
-  });
+  const totalPages = Math.ceil(totalOpportunities / 10);
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans transition-colors duration-200">
@@ -162,34 +209,12 @@ export default function StudentDashboard() {
           </Link>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 gap-4 border-y border-zinc-200 py-5 dark:border-zinc-800 sm:grid-cols-2">
-          <div className="border-l-2 border-zinc-900 pl-4 dark:border-zinc-100">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Available Feed</span>
-              <Briefcase size={16} className="text-zinc-400" />
-            </div>
-            <div className="text-2xl font-black font-mono">{opportunities.length}</div>
-            <span className="text-[10px] font-mono text-zinc-400 mt-1 block">Active opportunities</span>
-          </div>
-
-          <div className="border-l-2 border-zinc-300 pl-4 dark:border-zinc-700">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Saved Opportunities</span>
-              <Bookmark size={16} className="text-zinc-400" />
-            </div>
-            <div className="text-2xl font-black font-mono">{savedIds.length}</div>
-            <span className="text-[10px] font-mono text-zinc-400 mt-1 block">Bookmarked for later</span>
-          </div>
-
-        </div>
-
         {/* Main Content Layout */}
         <section className="space-y-5">
           <div className="flex flex-col gap-1 border-b border-zinc-200 pb-4 dark:border-zinc-800">
             <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-zinc-500">Discover</span>
-            <h2 className="text-xl font-black uppercase tracking-wide">Opportunity feed</h2>
-            <p className="text-xs text-zinc-500">Search and filter active opportunities matched to your goals.</p>
+            <h2 className="text-xl font-black uppercase tracking-wide">{personalized ? 'For You' : 'Opportunity Feed'} ({totalOpportunities})</h2>
+            <p className="text-xs text-zinc-500">{personalized ? 'Opportunities matched to your profile skills.' : 'Search and filter active opportunities across the full database.'}</p>
           </div>
             
             {/* Search and Category Filter Strip */}
@@ -199,8 +224,12 @@ export default function StudentDashboard() {
                 <input
                   type="text"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by title, organization, or key topic..."
+                  disabled={personalized}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setPage(1);
+                  }}
+                  placeholder={personalized ? 'Personalized by your profile skills' : 'Search by title, organization, or key topic...'}
                   className="w-full pl-10 pr-4 py-2.5 bg-zinc-100 dark:bg-zinc-950/80 border border-zinc-300 dark:border-zinc-800 text-xs font-mono text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:border-zinc-500 dark:focus:border-zinc-400 rounded-none"
                 />
               </div>
@@ -211,7 +240,10 @@ export default function StudentDashboard() {
                   {OPPORTUNITY_CATEGORIES.map((cat) => (
                     <button
                       key={cat.id}
-                      onClick={() => setSelectedType(cat.id)}
+                      onClick={() => {
+                        setSelectedType(cat.id);
+                        setPage(1);
+                      }}
                       className={`px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider whitespace-nowrap border transition rounded-none ${
                         selectedType === cat.id
                           ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-950 border-zinc-900 dark:border-zinc-100 font-bold'
@@ -230,13 +262,13 @@ export default function StudentDashboard() {
               <div className="p-12 text-center bg-white dark:bg-zinc-900/70 border border-zinc-200 dark:border-zinc-800 font-mono text-xs text-zinc-500">
                 Loading opportunity feed...
               </div>
-            ) : filteredOpportunities.length === 0 ? (
+            ) : opportunities.length === 0 ? (
               <div className="p-12 text-center bg-white dark:bg-zinc-900/70 border border-zinc-200 dark:border-zinc-800 font-mono text-xs text-zinc-500">
                 No opportunities found matching category "{getCategoryLabel(selectedType)}".
               </div>
             ) : (
               <div className="grid gap-4 xl:grid-cols-2">
-                {filteredOpportunities.map((opp) => {
+                {opportunities.map((opp) => {
                   const isSaved = savedIds.includes(opp.id);
                   const application = applications.find((item) => item.opportunityId === String(opp.id));
                   return (
@@ -294,6 +326,31 @@ export default function StudentDashboard() {
                     </article>
                   );
                 })}
+              </div>
+            )}
+            {!loading && totalPages > 1 && (
+              <div className="flex flex-col items-center justify-between gap-4 border-t border-zinc-200 pt-4 dark:border-zinc-800 sm:flex-row">
+                <span className="border border-zinc-900 bg-zinc-900 px-3 py-2 text-xs font-black uppercase tracking-widest text-white shadow-sm dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-950">
+                  Page <strong>{page}</strong> <span className="mx-1 text-zinc-400 dark:text-zinc-500">/</span> {totalPages}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPage((current) => Math.max(1, current - 1))}
+                    disabled={page === 1}
+                    className="inline-flex items-center gap-1.5 border border-zinc-900 bg-white px-3 py-2 text-[11px] font-black uppercase tracking-wider text-zinc-900 transition hover:bg-zinc-900 hover:text-white disabled:cursor-not-allowed disabled:border-zinc-300 disabled:bg-zinc-100 disabled:text-zinc-400 dark:border-zinc-100 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-100 dark:hover:text-zinc-950 dark:disabled:border-zinc-700 dark:disabled:bg-zinc-900 dark:disabled:text-zinc-600"
+                  >
+                    <ChevronLeft size={15} /> Previous
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                    disabled={page === totalPages}
+                    className="inline-flex items-center gap-1.5 border border-zinc-900 bg-zinc-900 px-3 py-2 text-[11px] font-black uppercase tracking-wider text-white transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:border-zinc-300 disabled:bg-zinc-100 disabled:text-zinc-400 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-white dark:disabled:border-zinc-700 dark:disabled:bg-zinc-900 dark:disabled:text-zinc-600"
+                  >
+                    Next <ChevronRight size={15} />
+                  </button>
+                </div>
               </div>
             )}
         </section>

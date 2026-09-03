@@ -12,6 +12,7 @@ import LoginPage from './pages/LoginPage';
 import StudentOnboarding from './pages/StudentOnboarding';
 import RecruiterOnboarding from './pages/RecruiterOnboarding';
 import DashboardPage from './pages/DashboardPage';
+import FeedPage from './pages/FeedPage';
 import StudentProfile from './pages/StudentProfile';
 import TrackerPage from './pages/TrackerPage';
 import AdminPage from './pages/AdminPage';
@@ -66,6 +67,7 @@ export default function App() {
 
                 <Route element={<StudentRoute />}>
                   <Route path={FRONTEND_ROUTES.dashboard} element={<DashboardPage />} />
+                  <Route path={FRONTEND_ROUTES.feed} element={<FeedPage />} />
                   <Route path={FRONTEND_ROUTES.studentProfile} element={<StudentProfile />} />
                   <Route path={FRONTEND_ROUTES.tracker} element={<TrackerPage />} />
                   <Route path={FRONTEND_ROUTES.savedOpportunities} element={<SavedOpportunities />} />

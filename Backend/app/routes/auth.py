@@ -660,8 +660,21 @@ async def get_student_saved_opportunities(authorization: Optional[str] = Header(
             detail="Access denied. Saved opportunities are only available to student accounts."
         )
 
-    saved = user.get("savedOpportunities") or []
-    return {"savedOpportunityIds": [str(item) for item in saved]}
+    saved = [str(item) for item in (user.get("savedOpportunities") or [])]
+    existing_ids = {
+        str(item["_id"])
+        async for item in db["opportunities"].find(
+            {"_id": {"$in": [ObjectId(item) for item in saved if ObjectId.is_valid(item)]}},
+            {"_id": 1},
+        )
+    }
+    valid_saved = [item for item in saved if item in existing_ids]
+    if valid_saved != saved:
+        await db["users"].update_one(
+            {"_id": ObjectId(user_id)},
+            {"$set": {"savedOpportunities": valid_saved}},
+        )
+    return {"savedOpportunityIds": valid_saved}
 
 
 @router.post("/student/saved-opportunities/{opportunity_id}")

@@ -14,6 +14,7 @@ export const OPPORTUNITY_CATEGORIES = [
   { id: 'STUDY_ABROAD', label: 'Study Abroad' },
   { id: 'YOUTH_PROGRAM', label: 'Youth Program' },
   { id: 'MENTORSHIP', label: 'Mentorship' },
+  { id: 'OTHER', label: 'Other' },
 ];
 
 export const OPPORTUNITY_TYPES = [

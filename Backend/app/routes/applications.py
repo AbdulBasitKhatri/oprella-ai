@@ -1,4 +1,5 @@
-from datetime import datetime, timezone
+import random
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import httpx
@@ -175,7 +176,45 @@ async def message_candidate(application_id: str, payload: MessageCreate, authori
 
 @router.get("/notifications")
 async def notifications(authorization: Optional[str] = Header(None)):
-    user_id, _, db = await current_user(authorization)
+    user_id, user, db = await current_user(authorization)
+    applications = await db["applications"].find({"candidateId": user_id}, {"opportunityId": 1}).to_list(length=None)
+    applied_ids = [item["opportunityId"] for item in applications if item.get("opportunityId")]
+    deadline_filter = {"applicationDeadline": {"$exists": True, "$nin": [None, ""]}}
+    if applied_ids:
+        deadline_filter["_id"] = {"$nin": applied_ids}
+
+    now = datetime.now(timezone.utc)
+    reminder_messages = [
+        "The deadline is approaching. Give this opportunity a look before it closes.",
+        "This opportunity may be a strong fit for your profile and is nearing its deadline.",
+        "A quick reminder: this opportunity will not stay open forever.",
+    ]
+    async for opportunity in db["opportunities"].find(deadline_filter):
+        raw_deadline = opportunity.get("applicationDeadline")
+        try:
+            deadline = datetime.fromisoformat(str(raw_deadline).replace("Z", "+00:00"))
+            if deadline.tzinfo is None:
+                deadline = deadline.replace(tzinfo=timezone.utc)
+        except ValueError:
+            continue
+        days_left = (deadline - now).total_seconds() / 86400
+        if 0 <= days_left <= 7:
+            opportunity_id = str(opportunity["_id"])
+            reminder_key = f"deadline:{opportunity_id}:{deadline.date().isoformat()}"
+            exists = await db["notifications"].find_one({"userId": user_id, "reminderKey": reminder_key})
+            if not exists:
+                await db["notifications"].insert_one({
+                    "userId": user_id,
+                    "type": "deadline",
+                    "title": f"Deadline reminder: {opportunity.get('title') or 'Opportunity'}",
+                    "body": random.choice(reminder_messages),
+                    "opportunityId": opportunity_id,
+                    "opportunityUrl": f"/feed?opportunity={opportunity_id}",
+                    "read": False,
+                    "createdAt": now_iso(),
+                    "reminderKey": reminder_key,
+                })
+
     return [serialize(item) async for item in db["notifications"].find({"userId": user_id}).sort("createdAt", -1).limit(50)]
 
 

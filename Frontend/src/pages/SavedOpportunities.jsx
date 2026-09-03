@@ -23,7 +23,8 @@ export default function SavedOpportunities() {
         const all = await opportunitiesResponse.json();
         if (!savedResponse.ok || !opportunitiesResponse.ok) throw new Error('Unable to load saved opportunities.');
         const savedIds = new Set((saved.savedOpportunityIds || []).map(String));
-        setOpportunities((Array.isArray(all) ? all : []).filter((item) => savedIds.has(String(item._id))));
+        const items = Array.isArray(all) ? all : (Array.isArray(all.items) ? all.items : []);
+        setOpportunities(items.filter((item) => savedIds.has(String(item._id))));
       } catch (err) {
         setError(err.message || 'Unable to load saved opportunities.');
       } finally {
