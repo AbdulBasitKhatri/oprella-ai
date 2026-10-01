@@ -433,7 +433,3 @@ This README documents the behavior currently represented in the repository. The 
 ## Status
 
 Oprella AI is a deployed MVP with a working student discovery/application workflow and recruiter publishing/review workflow. The architecture is intentionally modular: the current local matching and Gemini integrations can evolve independently as the product gains users, data, and stronger ranking signals.
-
-## License
-
-No license has been declared in this repository yet. Add a license before distributing the code publicly or accepting external contributions.
